@@ -13,7 +13,7 @@ import { queryKeys } from '@/lib/query/keys'
 import { formatCurrency, formatDate, formatLabel } from '@/lib/utils'
 
 export function UnitDetailPage() {
-  const { unitId } = useParams({ from: '/units/$unitId' })
+  const { unitId } = useParams({ from: '/authenticated/units/$unitId' })
 
   const unitQuery = useQuery({
     queryKey: queryKeys.units.detail(unitId),
@@ -50,9 +50,9 @@ export function UnitDetailPage() {
                   type="button"
                   variant="outline"
                   onClick={() =>
-                    toast.message('Unit edit is a UX demo action', {
+                    toast.message('Unit editing is not available yet', {
                       description:
-                        'A real API would authorize this mutation server-side.',
+                        'Connect a write API to enable this action.',
                     })
                   }
                 >

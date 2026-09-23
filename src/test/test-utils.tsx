@@ -11,6 +11,8 @@ import { render } from '@testing-library/react'
 import { Toaster } from 'sonner'
 import { z } from 'zod'
 import { AppLayout } from '@/app/layouts/AppLayout'
+import { AuthProvider } from '@/features/auth/auth-context'
+import { writeAuthSession } from '@/features/auth/mock-auth'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { PropertiesPage } from '@/features/properties/properties-page'
 import { propertiesSearchSchema } from '@/features/properties/properties-search'
@@ -32,10 +34,25 @@ function createTestQueryClient() {
   })
 }
 
+/** Seed a mock authenticated session for private-route tests. */
+export function seedAuthenticatedSession(username = 'test') {
+  writeAuthSession({
+    username,
+    authenticatedAt: new Date().toISOString(),
+  })
+}
+
 export function renderApp(route = '/dashboard') {
+  seedAuthenticatedSession()
   const queryClient = createTestQueryClient()
 
   const rootRoute = createRootRoute({
+    component: () => <Outlet />,
+  })
+
+  const authenticatedRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    id: 'authenticated',
     component: () => (
       <AppLayout>
         <Outlet />
@@ -44,59 +61,61 @@ export function renderApp(route = '/dashboard') {
   })
 
   const dashboardRoute = createRoute({
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => authenticatedRoute,
     path: '/dashboard',
     component: DashboardPage,
   })
   const propertiesRoute = createRoute({
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => authenticatedRoute,
     path: '/properties',
     validateSearch: propertiesSearchSchema,
     component: PropertiesPage,
   })
   const propertyDetailRoute = createRoute({
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => authenticatedRoute,
     path: '/properties/$propertyId',
     component: PropertyDetailPage,
   })
   const unitsRoute = createRoute({
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => authenticatedRoute,
     path: '/units',
     validateSearch: z.object({ propertyId: z.string().optional() }),
     component: UnitsPage,
   })
   const unitDetailRoute = createRoute({
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => authenticatedRoute,
     path: '/units/$unitId',
     component: UnitDetailPage,
   })
   const ticketsRoute = createRoute({
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => authenticatedRoute,
     path: '/tickets',
     validateSearch: ticketsSearchSchema,
     component: TicketsPage,
   })
   const ticketDetailRoute = createRoute({
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => authenticatedRoute,
     path: '/tickets/$ticketId',
     component: TicketDetailPage,
   })
   const settingsRoute = createRoute({
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => authenticatedRoute,
     path: '/settings',
     component: SettingsPage,
   })
 
   const router = createRouter({
     routeTree: rootRoute.addChildren([
-      dashboardRoute,
-      propertiesRoute,
-      propertyDetailRoute,
-      unitsRoute,
-      unitDetailRoute,
-      ticketsRoute,
-      ticketDetailRoute,
-      settingsRoute,
+      authenticatedRoute.addChildren([
+        dashboardRoute,
+        propertiesRoute,
+        propertyDetailRoute,
+        unitsRoute,
+        unitDetailRoute,
+        ticketsRoute,
+        ticketDetailRoute,
+        settingsRoute,
+      ]),
     ]),
     history: createMemoryHistory({ initialEntries: [route] }),
   })
@@ -104,10 +123,12 @@ export function renderApp(route = '/dashboard') {
   return {
     ...render(
       <QueryClientProvider client={queryClient}>
-        <SessionProvider>
-          <RouterProvider router={router} />
-          <Toaster />
-        </SessionProvider>
+        <AuthProvider>
+          <SessionProvider>
+            <RouterProvider router={router} />
+            <Toaster />
+          </SessionProvider>
+        </AuthProvider>
       </QueryClientProvider>,
     ),
     queryClient,

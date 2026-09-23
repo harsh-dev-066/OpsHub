@@ -1,9 +1,11 @@
-import { Link, useRouterState } from '@tanstack/react-router'
-import { Menu, X } from 'lucide-react'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
+import { LogOut, Menu, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { getVisibleNavItems } from '@/components/navigation/nav-items'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { useAuth } from '@/features/auth/auth-context'
 import { usePermissions } from '@/features/auth/permissions'
 import { useSession } from '@/features/settings/session-context'
 import { cn } from '@/lib/utils'
@@ -54,6 +56,8 @@ function NavLinks({
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useSession()
+  const { logout, session } = useAuth()
+  const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const firstNavLinkRef = useRef<HTMLAnchorElement>(null)
@@ -83,6 +87,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       menuButton?.focus()
     }
   }, [mobileOpen])
+
+  function handleLogout() {
+    logout()
+    toast.message('Signed out')
+    void navigate({ to: '/login' })
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -161,9 +171,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </Button>
               <p className="text-sm text-muted-foreground md:hidden">OpsHub</p>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-medium">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.role}</p>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-sm font-medium">{user.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {user.role}
+                  {session?.username ? ` · ${session.username}` : null}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4" aria-hidden />
+                Sign out
+              </Button>
             </div>
           </header>
           <main id="main-content" className="flex-1 px-4 py-6 md:px-6">

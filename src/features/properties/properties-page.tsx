@@ -13,7 +13,7 @@ import {
 import { propertiesApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
 
-const propertiesRoute = getRouteApi('/properties')
+const propertiesRoute = getRouteApi('/authenticated/properties')
 
 export function PropertiesPage() {
   const search = propertiesRoute.useSearch()

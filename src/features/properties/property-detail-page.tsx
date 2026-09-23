@@ -18,7 +18,9 @@ import { propertiesApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
 
 export function PropertyDetailPage() {
-  const { propertyId } = useParams({ from: '/properties/$propertyId' })
+  const { propertyId } = useParams({
+    from: '/authenticated/properties/$propertyId',
+  })
 
   const propertyQuery = useQuery({
     queryKey: queryKeys.properties.detail(propertyId),
@@ -61,9 +63,9 @@ export function PropertyDetailPage() {
                 type="button"
                 variant="outline"
                 onClick={() =>
-                  toast.message('Property edit is a UX demo action', {
+                  toast.message('Property editing is not available yet', {
                     description:
-                      'A real API would authorize this mutation server-side.',
+                      'Connect a write API to enable this action.',
                   })
                 }
               >

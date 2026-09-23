@@ -37,7 +37,7 @@ import { formatDate, formatLabel } from '@/lib/utils'
 import type { PaginatedResponse, Ticket, TicketStatus } from '@/types/domain'
 
 export function TicketDetailPage() {
-  const { ticketId } = useParams({ from: '/tickets/$ticketId' })
+  const { ticketId } = useParams({ from: '/authenticated/tickets/$ticketId' })
   const queryClient = useQueryClient()
   const [editOpen, setEditOpen] = useState(false)
 

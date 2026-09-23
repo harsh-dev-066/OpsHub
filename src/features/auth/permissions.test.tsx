@@ -27,7 +27,7 @@ describe('permission-based UI rendering', () => {
   })
 
   it('hides ticket create for Viewer', async () => {
-    localStorage.setItem('opshub.demo-role', 'Viewer')
+    localStorage.setItem('opshub.role', 'Viewer')
     renderApp('/tickets')
 
     expect(
@@ -42,7 +42,7 @@ describe('permission-based UI rendering', () => {
   })
 
   it('shows ticket create for Operations Manager', async () => {
-    localStorage.setItem('opshub.demo-role', 'Operations Manager')
+    localStorage.setItem('opshub.role', 'Operations Manager')
     renderApp('/tickets')
 
     expect(
@@ -51,7 +51,7 @@ describe('permission-based UI rendering', () => {
   })
 
   it('hides property edit for Support Agent and shows it for Admin', async () => {
-    localStorage.setItem('opshub.demo-role', 'Support Agent')
+    localStorage.setItem('opshub.role', 'Support Agent')
     const supportView = renderApp('/properties/prop-001')
 
     expect(
@@ -62,7 +62,7 @@ describe('permission-based UI rendering', () => {
     ).not.toBeInTheDocument()
     supportView.unmount()
 
-    localStorage.setItem('opshub.demo-role', 'Admin')
+    localStorage.setItem('opshub.role', 'Admin')
     renderApp('/properties/prop-001')
 
     expect(
@@ -71,7 +71,7 @@ describe('permission-based UI rendering', () => {
   })
 
   it('hides unit edit for Support Agent and shows it for Operations Manager', async () => {
-    localStorage.setItem('opshub.demo-role', 'Support Agent')
+    localStorage.setItem('opshub.role', 'Support Agent')
     const supportView = renderApp('/units/unit-001')
 
     expect(
@@ -82,7 +82,7 @@ describe('permission-based UI rendering', () => {
     ).not.toBeInTheDocument()
     supportView.unmount()
 
-    localStorage.setItem('opshub.demo-role', 'Operations Manager')
+    localStorage.setItem('opshub.role', 'Operations Manager')
     renderApp('/units/unit-001')
 
     expect(
@@ -91,7 +91,7 @@ describe('permission-based UI rendering', () => {
   })
 
   it('hides ticket edit and status controls for Viewer', async () => {
-    localStorage.setItem('opshub.demo-role', 'Viewer')
+    localStorage.setItem('opshub.role', 'Viewer')
     renderApp('/tickets/tkt-001')
 
     expect(
@@ -111,8 +111,8 @@ describe('permission-based UI rendering', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('updates effective permissions when the demo role changes', async () => {
-    localStorage.setItem('opshub.demo-role', 'Viewer')
+  it('updates effective permissions when the role changes', async () => {
+    localStorage.setItem('opshub.role', 'Viewer')
     const user = userEvent.setup()
     renderApp('/settings')
 
@@ -121,7 +121,7 @@ describe('permission-based UI rendering', () => {
     ).toBeInTheDocument()
     expect(screen.queryByText('tickets:create')).not.toBeInTheDocument()
 
-    await user.click(screen.getByLabelText('Select demo role'))
+    await user.click(screen.getByLabelText('Select role'))
     await user.click(
       await screen.findByRole('option', { name: 'Operations Manager' }),
     )

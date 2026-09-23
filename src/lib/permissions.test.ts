@@ -11,21 +11,21 @@ import {
 const adminUser: PermissionUser = {
   id: '1',
   name: 'Admin User',
-  email: 'admin@opshub.demo',
+  email: 'admin@opshub.app',
   role: 'Admin',
 }
 
 const supportUser: PermissionUser = {
   id: '2',
   name: 'Support User',
-  email: 'support@opshub.demo',
+  email: 'support@opshub.app',
   role: 'Support Agent',
 }
 
 const viewerUser: PermissionUser = {
   id: '3',
   name: 'Viewer User',
-  email: 'viewer@opshub.demo',
+  email: 'viewer@opshub.app',
   role: 'Viewer',
 }
 

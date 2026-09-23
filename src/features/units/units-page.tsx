@@ -19,7 +19,7 @@ import { queryKeys } from '@/lib/query/keys'
 import { formatCurrency, formatLabel } from '@/lib/utils'
 import type { Unit } from '@/types/domain'
 
-const unitsRoute = getRouteApi('/units')
+const unitsRoute = getRouteApi('/authenticated/units')
 
 export function UnitsPage() {
   const searchParams = unitsRoute.useSearch()

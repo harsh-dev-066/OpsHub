@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useAuth } from '@/features/auth/auth-context'
 import { usePermissions } from '@/features/auth/permissions'
 import { useSession } from '@/features/settings/session-context'
 import {
@@ -18,6 +19,7 @@ import type { Role } from '@/types/domain'
 
 export function SettingsPage() {
   const { role, setRole, user } = useSession()
+  const { session } = useAuth()
   const { can } = usePermissions()
   const activePermissions = getPermissionsForRole(role)
 
@@ -25,7 +27,7 @@ export function SettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Settings"
-        description="Demo profile and role switcher for interviewing UX-only permissions."
+        description="Manage your profile and console role."
       />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -40,13 +42,19 @@ export function SettingsPage() {
               <dd className="mt-1">{user.email}</dd>
             </div>
             <div>
+              <dt className="text-muted-foreground">Signed in as</dt>
+              <dd className="mt-1 font-mono text-sm">
+                {session?.username ?? '—'}
+              </dd>
+            </div>
+            <div>
               <dt className="text-muted-foreground">Current role</dt>
               <dd className="mt-1 font-medium">{user.role}</dd>
             </div>
           </dl>
         </SectionCard>
 
-        <SectionCard title="Demo role switcher">
+        <SectionCard title="Role">
           <div className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="role">Active role</Label>
@@ -55,7 +63,7 @@ export function SettingsPage() {
                 onValueChange={(value) => setRole(value as Role)}
                 disabled={!can('settings:write')}
               >
-                <SelectTrigger id="role" aria-label="Select demo role">
+                <SelectTrigger id="role" aria-label="Select role">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -70,9 +78,8 @@ export function SettingsPage() {
             <p className="text-xs text-muted-foreground">
               {ROLE_DESCRIPTIONS[role]}
             </p>
-            <p className="rounded-md border border-warning bg-warning px-3 py-2 text-xs text-warning-foreground">
-              Switching roles only changes what the UI shows. Backend
-              authorization remains the security boundary in a real application.
+            <p className="text-xs text-muted-foreground">
+              Changing role updates which actions appear in the console.
             </p>
           </div>
         </SectionCard>
@@ -80,7 +87,7 @@ export function SettingsPage() {
 
       <SectionCard
         title="Effective permissions"
-        description="Capabilities granted to the active demo role."
+        description="Capabilities for the active role."
       >
         <ul className="grid gap-2 sm:grid-cols-2">
           {activePermissions.map((permission) => (

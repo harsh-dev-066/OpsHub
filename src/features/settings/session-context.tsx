@@ -15,7 +15,7 @@ import {
 } from '@/lib/permissions'
 import type { Role } from '@/types/domain'
 
-const STORAGE_KEY = 'opshub.demo-role'
+const STORAGE_KEY = 'opshub.role'
 
 interface SessionContextValue {
   user: PermissionUser
@@ -34,9 +34,9 @@ function readStoredRole(): Role {
 
 function buildUser(role: Role): PermissionUser {
   return {
-    id: 'user-demo',
+    id: 'user-alex',
     name: 'Alex Morgan',
-    email: 'alex.morgan@opshub.demo',
+    email: 'alex.morgan@opshub.app',
     role,
   }
 }

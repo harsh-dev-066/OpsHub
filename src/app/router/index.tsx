@@ -1,6 +1,6 @@
 import {
   Outlet,
-  createRootRoute,
+  createRootRouteWithContext,
   createRoute,
   createRouter,
   redirect,
@@ -8,10 +8,21 @@ import {
 import { lazy, Suspense } from 'react'
 import { z } from 'zod'
 import { AppLayout } from '@/app/layouts/AppLayout'
+import type { AuthContextValue } from '@/features/auth/auth-context'
+import { readAuthSession } from '@/features/auth/mock-auth'
+import { loginSearchSchema } from '@/features/auth/login-schema'
 import { NotFoundPage } from '@/features/settings/not-found-page'
 import { Skeleton } from '@/components/ui/skeleton'
 import { propertiesSearchSchema } from '@/features/properties/properties-search'
 import { ticketsSearchSchema } from '@/features/tickets/ticket-schema'
+
+export interface RouterContext {
+  auth: AuthContextValue
+}
+
+function isSignedIn(auth: AuthContextValue) {
+  return auth.isAuthenticated || Boolean(readAuthSession())
+}
 
 const DashboardPage = lazy(() =>
   import('@/features/dashboard/dashboard-page').then((m) => ({
@@ -53,6 +64,11 @@ const SettingsPage = lazy(() =>
     default: m.SettingsPage,
   })),
 )
+const LoginPage = lazy(() =>
+  import('@/features/auth/login-page').then((m) => ({
+    default: m.LoginPage,
+  })),
+)
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -70,7 +86,51 @@ function LazyPage({ children }: { children: React.ReactNode }) {
   )
 }
 
-const rootRoute = createRootRoute({
+const rootRoute = createRootRouteWithContext<RouterContext>()({
+  component: () => <Outlet />,
+  beforeLoad: ({ context, location }) => {
+    const isPublicLogin = location.pathname === '/login'
+    if (!isPublicLogin && !isSignedIn(context.auth)) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: `${location.pathname}${location.searchStr}`,
+        },
+      })
+    }
+  },
+  notFoundComponent: NotFoundPage,
+})
+
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  validateSearch: loginSearchSchema,
+  beforeLoad: ({ context }) => {
+    if (isSignedIn(context.auth)) {
+      throw redirect({ to: '/dashboard' })
+    }
+  },
+  component: () => (
+    <LazyPage>
+      <LoginPage />
+    </LazyPage>
+  ),
+})
+
+const authenticatedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: 'authenticated',
+  beforeLoad: ({ context, location }) => {
+    if (!isSignedIn(context.auth)) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: `${location.pathname}${location.searchStr}`,
+        },
+      })
+    }
+  },
   component: () => (
     <AppLayout>
       <Outlet />
@@ -80,7 +140,7 @@ const rootRoute = createRootRoute({
 })
 
 const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/',
   beforeLoad: () => {
     throw redirect({ to: '/dashboard' })
@@ -88,7 +148,7 @@ const indexRoute = createRoute({
 })
 
 const dashboardRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/dashboard',
   component: () => (
     <LazyPage>
@@ -98,7 +158,7 @@ const dashboardRoute = createRoute({
 })
 
 const propertiesRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/properties',
   validateSearch: propertiesSearchSchema,
   component: () => (
@@ -109,7 +169,7 @@ const propertiesRoute = createRoute({
 })
 
 const propertyDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/properties/$propertyId',
   component: () => (
     <LazyPage>
@@ -123,7 +183,7 @@ const unitsSearchSchema = z.object({
 })
 
 const unitsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/units',
   validateSearch: unitsSearchSchema,
   component: () => (
@@ -134,7 +194,7 @@ const unitsRoute = createRoute({
 })
 
 const unitDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/units/$unitId',
   component: () => (
     <LazyPage>
@@ -144,7 +204,7 @@ const unitDetailRoute = createRoute({
 })
 
 const ticketsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/tickets',
   validateSearch: ticketsSearchSchema,
   component: () => (
@@ -155,7 +215,7 @@ const ticketsRoute = createRoute({
 })
 
 const ticketDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/tickets/$ticketId',
   component: () => (
     <LazyPage>
@@ -165,7 +225,7 @@ const ticketDetailRoute = createRoute({
 })
 
 const settingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => authenticatedRoute,
   path: '/settings',
   component: () => (
     <LazyPage>
@@ -175,20 +235,26 @@ const settingsRoute = createRoute({
 })
 
 const routeTree = rootRoute.addChildren([
-  indexRoute,
-  dashboardRoute,
-  propertiesRoute,
-  propertyDetailRoute,
-  unitsRoute,
-  unitDetailRoute,
-  ticketsRoute,
-  ticketDetailRoute,
-  settingsRoute,
+  loginRoute,
+  authenticatedRoute.addChildren([
+    indexRoute,
+    dashboardRoute,
+    propertiesRoute,
+    propertyDetailRoute,
+    unitsRoute,
+    unitDetailRoute,
+    ticketsRoute,
+    ticketDetailRoute,
+    settingsRoute,
+  ]),
 ])
 
 export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
+  context: {
+    auth: undefined!,
+  },
   defaultNotFoundComponent: NotFoundPage,
 })
 

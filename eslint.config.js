@@ -29,6 +29,7 @@ export default tseslint.config(
           allowConstantExport: true,
           allowExportNames: [
             'useSession',
+            'useAuth',
             'usePermissions',
             'describedByIds',
           ],

@@ -26,7 +26,7 @@ import { TicketsFilters } from '@/features/tickets/tickets-filters'
 import { propertiesApi, ticketsApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
 
-const ticketsRoute = getRouteApi('/tickets')
+const ticketsRoute = getRouteApi('/authenticated/tickets')
 
 export function TicketsPage() {
   const search = ticketsRoute.useSearch()

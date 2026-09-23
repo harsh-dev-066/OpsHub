@@ -1,14 +1,8 @@
 import type { Role } from '@/types/domain'
 
 /**
- * Frontend RBAC for OpsHub demos.
- *
- * These checks shape what the UI shows (nav, create/edit buttons, etc.).
- * They are NOT authentication and NOT authorization.
- * In a real application, the API would remain the security boundary and
- * must authorize every mutation independently of this map.
+ * Frontend capability identifiers used to gate console UI.
  */
-
 export type Permission =
   | 'dashboard:read'
   | 'properties:read'
@@ -87,8 +81,7 @@ const rolePermissions = {
     'units:read',
     'tickets:read',
     'settings:read',
-    // Demo convenience: Viewer may switch roles in Settings.
-    // That is not a production auth grant.
+    // Viewer may switch roles in Settings for exploring permissions.
     'settings:write',
   ],
 } as const satisfies Record<Role, readonly Permission[]>
@@ -103,7 +96,7 @@ export const ROLE_OPTIONS: Role[] = [
 ]
 
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
-  Admin: 'Full console access for demos and administration.',
+  Admin: 'Full console access for administration.',
   'Operations Manager':
     'Operational access to properties, units, and tickets.',
   'Support Agent':
