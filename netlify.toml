@@ -1,0 +1,15 @@
+# Netlify build + SPA routing for OpsHub (Vite + pnpm).
+# Connect this GitHub repo in the Netlify UI — every push to main deploys.
+
+[build]
+  command = "pnpm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Client-side routes (TanStack Router) must fall back to index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
