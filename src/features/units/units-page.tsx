@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
+import { getRouteApi, Link } from '@tanstack/react-router'
 import { type ColumnDef, type SortingState } from '@tanstack/react-table'
 import { useEffect, useMemo, useState } from 'react'
 import { DataTable } from '@/components/data-table/data-table'
+import { ActiveFilterChip } from '@/components/feedback/active-filter-chip'
 import { UnitStatusBadge } from '@/components/feedback/status-badges'
 import { PageHeader } from '@/components/navigation/page-header'
 import { Input } from '@/components/ui/input'
@@ -15,10 +16,15 @@ import {
 } from '@/components/ui/select'
 import { propertiesApi, unitsApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatLabel } from '@/lib/utils'
 import type { Unit } from '@/types/domain'
 
+const unitsRoute = getRouteApi('/units')
+
 export function UnitsPage() {
+  const searchParams = unitsRoute.useSearch()
+  const navigate = unitsRoute.useNavigate()
+  const propertyId = searchParams.propertyId
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
@@ -26,6 +32,12 @@ export function UnitsPage() {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'unitNumber', desc: false },
   ])
+  const [prevPropertyId, setPrevPropertyId] = useState(propertyId)
+
+  if (propertyId !== prevPropertyId) {
+    setPrevPropertyId(propertyId)
+    setPage(1)
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -38,6 +50,7 @@ export function UnitsPage() {
   const params = {
     search: search || undefined,
     status: status === 'all' ? undefined : status,
+    propertyId,
     page,
     pageSize: 10,
     sortBy: sorting[0]?.id,
@@ -62,6 +75,10 @@ export function UnitsPage() {
     return map
   }, [propertiesQuery.data])
 
+  const propertyFilterLabel = propertyId
+    ? `Property: ${propertyNameById.get(propertyId) ?? propertyId}`
+    : null
+
   const columns = useMemo<ColumnDef<Unit>[]>(
     () => [
       {
@@ -78,13 +95,20 @@ export function UnitsPage() {
         ),
       },
       {
-        accessorKey: 'propertyId',
+        id: 'property',
+        accessorFn: (row) =>
+          propertyNameById.get(row.propertyId) ?? row.propertyId,
+        enableSorting: false,
         header: 'Property',
         cell: ({ row }) =>
           propertyNameById.get(row.original.propertyId) ??
           row.original.propertyId,
       },
-      { accessorKey: 'type', header: 'Type' },
+      {
+        accessorKey: 'type',
+        header: 'Type',
+        cell: ({ row }) => formatLabel(row.original.type),
+      },
       { accessorKey: 'floor', header: 'Floor' },
       {
         accessorKey: 'status',
@@ -106,13 +130,25 @@ export function UnitsPage() {
   )
 
   return (
-    <div>
+    <div className="space-y-0">
       <PageHeader
         title="Units"
         description="Search and filter units across the portfolio."
       />
+      {propertyFilterLabel ? (
+        <ActiveFilterChip
+          label={propertyFilterLabel}
+          onClear={() =>
+            void navigate({
+              search: (prev) => ({ ...prev, propertyId: undefined }),
+            })
+          }
+        />
+      ) : null}
       <div className="mb-4 grid gap-3 md:grid-cols-2">
         <Input
+          type="search"
+          enterKeyHint="search"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Search by unit or resident..."
@@ -140,6 +176,7 @@ export function UnitsPage() {
       <DataTable
         columns={columns}
         data={unitsQuery.data?.data ?? []}
+        getRowId={(row) => row.id}
         sorting={sorting}
         onSortingChange={(next) => {
           setSorting(next)
@@ -149,6 +186,11 @@ export function UnitsPage() {
         isError={unitsQuery.isError}
         onRetry={() => unitsQuery.refetch()}
         emptyTitle="No units found"
+        emptyDescription={
+          propertyId
+            ? 'No units match this property filter. Clear the filter or adjust search.'
+            : 'Try adjusting your filters or search.'
+        }
         page={unitsQuery.data?.page ?? page}
         pageSize={unitsQuery.data?.pageSize ?? 10}
         total={unitsQuery.data?.total ?? 0}

@@ -22,7 +22,7 @@ export function EmptyState({
     >
       <Inbox className="h-8 w-8 text-muted-foreground" aria-hidden />
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold">{title}</h3>
+        <p className="text-sm font-semibold">{title}</p>
         {description ? (
           <p className="max-w-sm text-sm text-muted-foreground">
             {description}
@@ -38,11 +38,13 @@ export function QueryErrorState({
   title = 'Something went wrong',
   description = 'We could not load this data. Please try again.',
   onRetry,
+  action,
   className,
 }: {
   title?: string
   description?: string
   onRetry?: () => void
+  action?: React.ReactNode
   className?: string
 }) {
   return (
@@ -55,14 +57,17 @@ export function QueryErrorState({
     >
       <AlertCircle className="h-8 w-8 text-destructive" aria-hidden />
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold">{title}</h3>
+        <p className="text-sm font-semibold">{title}</p>
         <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
       </div>
-      {onRetry ? (
-        <Button type="button" variant="outline" onClick={onRetry}>
-          Try again
-        </Button>
-      ) : null}
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {onRetry ? (
+          <Button type="button" variant="outline" onClick={onRetry}>
+            Try again
+          </Button>
+        ) : null}
+        {action}
+      </div>
     </div>
   )
 }

@@ -1,50 +1,42 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
-import { type ColumnDef, type SortingState } from '@tanstack/react-table'
+import { getRouteApi } from '@tanstack/react-router'
+import { type SortingState } from '@tanstack/react-table'
 import { useEffect, useMemo, useState } from 'react'
 import { DataTable } from '@/components/data-table/data-table'
-import { PropertyStatusBadge } from '@/components/feedback/status-badges'
 import { PageHeader } from '@/components/navigation/page-header'
-import { Input } from '@/components/ui/input'
+import { createPropertyColumns } from '@/features/properties/property-columns'
+import { PropertiesFilters } from '@/features/properties/properties-filters'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  toPropertiesListParams,
+  type PropertiesSearch,
+} from '@/features/properties/properties-search'
 import { propertiesApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
-import { formatPercent } from '@/lib/utils'
-import type { Property } from '@/types/domain'
+
+const propertiesRoute = getRouteApi('/properties')
 
 export function PropertiesPage() {
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<string>('all')
-  const [city, setCity] = useState<string>('all')
-  const [page, setPage] = useState(1)
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: 'name', desc: false },
-  ])
+  const search = propertiesRoute.useSearch()
+  const navigate = propertiesRoute.useNavigate()
+  const [searchInput, setSearchInput] = useState(search.search ?? '')
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput)
-      setPage(1)
+    const timer = window.setTimeout(() => {
+      const nextSearch = searchInput.trim() || undefined
+      if (nextSearch === (search.search || undefined)) return
+      void navigate({
+        search: (prev) => ({
+          ...prev,
+          search: nextSearch,
+          page: 1,
+        }),
+        replace: true,
+      })
     }, 300)
-    return () => clearTimeout(timer)
-  }, [searchInput])
+    return () => window.clearTimeout(timer)
+  }, [searchInput, search.search, navigate])
 
-  const params = {
-    search: search || undefined,
-    status: status === 'all' ? undefined : status,
-    city: city === 'all' ? undefined : city,
-    page,
-    pageSize: 8,
-    sortBy: sorting[0]?.id,
-    sortDirection: sorting[0]?.desc ? ('desc' as const) : ('asc' as const),
-  }
+  const params = toPropertiesListParams(search)
 
   const citiesQuery = useQuery({
     queryKey: ['meta', 'cities'],
@@ -56,125 +48,77 @@ export function PropertiesPage() {
     queryFn: () => propertiesApi.list(params),
   })
 
-  const columns = useMemo<ColumnDef<Property>[]>(
-    () => [
-      {
-        accessorKey: 'name',
-        header: 'Property',
-        cell: ({ row }) => (
-          <div>
-            <Link
-              to="/properties/$propertyId"
-              params={{ propertyId: row.original.id }}
-              className="font-medium text-primary hover:underline"
-            >
-              {row.original.name}
-            </Link>
-            <p className="text-xs text-muted-foreground">
-              {row.original.address}
-            </p>
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'city',
-        header: 'City',
-      },
-      {
-        accessorKey: 'status',
-        header: 'Status',
-        cell: ({ row }) => <PropertyStatusBadge status={row.original.status} />,
-      },
-      {
-        accessorKey: 'totalUnits',
-        header: 'Units',
-      },
-      {
-        id: 'occupancy',
-        accessorFn: (row) =>
-          row.totalUnits === 0 ? 0 : (row.occupiedUnits / row.totalUnits) * 100,
-        header: 'Occupancy',
-        enableSorting: false,
-        cell: ({ getValue }) => formatPercent(Number(getValue())),
-      },
-      {
-        accessorKey: 'manager',
-        header: 'Manager',
-      },
-    ],
-    [],
-  )
+  const columns = useMemo(() => createPropertyColumns(), [])
+
+  const sorting: SortingState = [
+    {
+      id: search.sortBy ?? 'name',
+      desc: (search.sortDirection ?? 'asc') === 'desc',
+    },
+  ]
+
+  function updateSearch(patch: Partial<PropertiesSearch>) {
+    void navigate({
+      search: (prev) => ({
+        ...prev,
+        ...patch,
+      }),
+    })
+  }
 
   return (
     <div>
       <PageHeader
         title="Properties"
-        description="Browse and filter the property portfolio."
+        description="Browse and filter the property portfolio. Filters sync to the URL for sharing."
       />
 
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <Input
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Search properties..."
-          aria-label="Search properties"
-        />
-        <Select
-          value={status}
-          onValueChange={(value) => {
-            setStatus(value)
-            setPage(1)
-          }}
-        >
-          <SelectTrigger aria-label="Filter by status">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="maintenance">Maintenance</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={city}
-          onValueChange={(value) => {
-            setCity(value)
-            setPage(1)
-          }}
-        >
-          <SelectTrigger aria-label="Filter by city">
-            <SelectValue placeholder="City" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All cities</SelectItem>
-            {(citiesQuery.data ?? []).map((cityName) => (
-              <SelectItem key={cityName} value={cityName}>
-                {cityName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <PropertiesFilters
+        searchInput={searchInput}
+        onSearchInputChange={setSearchInput}
+        status={search.status ?? 'all'}
+        onStatusChange={(value) =>
+          updateSearch({
+            status:
+              value === 'all'
+                ? undefined
+                : (value as PropertiesSearch['status']),
+            page: 1,
+          })
+        }
+        city={search.city ?? 'all'}
+        onCityChange={(value) =>
+          updateSearch({
+            city: value === 'all' ? undefined : value,
+            page: 1,
+          })
+        }
+        cities={citiesQuery.data ?? []}
+      />
 
       <DataTable
         columns={columns}
         data={propertiesQuery.data?.data ?? []}
+        getRowId={(row) => row.id}
         sorting={sorting}
         onSortingChange={(next) => {
-          setSorting(next)
-          setPage(1)
+          const active = next[0]
+          updateSearch({
+            sortBy: active?.id ?? 'name',
+            sortDirection: active?.desc ? 'desc' : 'asc',
+            page: 1,
+          })
         }}
         isLoading={propertiesQuery.isLoading}
         isError={propertiesQuery.isError}
         onRetry={() => propertiesQuery.refetch()}
         emptyTitle="No properties found"
         emptyDescription="No properties match your current filters."
-        page={propertiesQuery.data?.page ?? page}
-        pageSize={propertiesQuery.data?.pageSize ?? 8}
+        page={propertiesQuery.data?.page ?? params.page}
+        pageSize={propertiesQuery.data?.pageSize ?? params.pageSize}
         total={propertiesQuery.data?.total ?? 0}
         totalPages={propertiesQuery.data?.totalPages ?? 1}
-        onPageChange={setPage}
+        onPageChange={(page) => updateSearch({ page })}
       />
     </div>
   )

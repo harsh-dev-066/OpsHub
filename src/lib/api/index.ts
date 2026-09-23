@@ -1,11 +1,13 @@
 import { apiClient, toSearchParams } from '@/lib/api/client'
 import type {
   ActivityItem,
+  Contract,
   DashboardSummary,
   ListQueryParams,
   OccupancyPoint,
   PaginatedResponse,
   Property,
+  Resident,
   Ticket,
   TicketBreakdownItem,
   Unit,
@@ -13,23 +15,8 @@ import type {
 } from '@/types/domain'
 
 export interface UnitDetail extends Unit {
-  residentDetail: {
-    id: string
-    name: string
-    email: string
-    phone: string
-    nationality: string
-    moveInDate: string
-    unitId: string
-  } | null
-  contract: {
-    id: string
-    residentId: string
-    unitId: string
-    startDate: string
-    endDate: string
-    status: string
-  } | null
+  residentDetail: Resident | null
+  contract: Contract | null
   property: Property | null
 }
 
@@ -69,6 +56,20 @@ export const unitsApi = {
   list: (params: ListQueryParams = {}) =>
     apiClient<PaginatedResponse<Unit>>(`/api/units${toSearchParams(params)}`),
   getById: (id: string) => apiClient<UnitDetail>(`/api/units/${id}`),
+}
+
+export const residentsApi = {
+  list: (params: ListQueryParams = {}) =>
+    apiClient<PaginatedResponse<Resident>>(
+      `/api/residents${toSearchParams(params)}`,
+    ),
+}
+
+export const contractsApi = {
+  list: (params: ListQueryParams = {}) =>
+    apiClient<PaginatedResponse<Contract>>(
+      `/api/contracts${toSearchParams(params)}`,
+    ),
 }
 
 export const ticketsApi = {

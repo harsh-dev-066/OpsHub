@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { formatLabel } from '@/lib/utils'
 import type {
   PropertyStatus,
   TicketPriority,
@@ -46,20 +47,24 @@ const ticketPriorityVariant: Record<
   critical: 'danger',
 }
 
-function labelize(value: string) {
-  return value.replaceAll('_', ' ')
-}
-
 export function PropertyStatusBadge({ status }: { status: PropertyStatus }) {
-  return <Badge variant={propertyStatusVariant[status]}>{status}</Badge>
+  return (
+    <Badge variant={propertyStatusVariant[status]}>
+      {formatLabel(status)}
+    </Badge>
+  )
 }
 
 export function UnitStatusBadge({ status }: { status: UnitStatus }) {
-  return <Badge variant={unitStatusVariant[status]}>{status}</Badge>
+  return (
+    <Badge variant={unitStatusVariant[status]}>{formatLabel(status)}</Badge>
+  )
 }
 
 export function TicketStatusBadge({ status }: { status: TicketStatus }) {
-  return <Badge variant={ticketStatusVariant[status]}>{labelize(status)}</Badge>
+  return (
+    <Badge variant={ticketStatusVariant[status]}>{formatLabel(status)}</Badge>
+  )
 }
 
 export function TicketPriorityBadge({
@@ -67,5 +72,9 @@ export function TicketPriorityBadge({
 }: {
   priority: TicketPriority
 }) {
-  return <Badge variant={ticketPriorityVariant[priority]}>{priority}</Badge>
+  return (
+    <Badge variant={ticketPriorityVariant[priority]}>
+      {formatLabel(priority)}
+    </Badge>
+  )
 }

@@ -6,31 +6,39 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { can, type Capability } from '@/lib/permissions'
+import {
+  can as canPermission,
+  hasPermission as hasPermissionCheck,
+  isRole,
+  type Permission,
+  type PermissionUser,
+} from '@/lib/permissions'
 import type { Role } from '@/types/domain'
 
 const STORAGE_KEY = 'opshub.demo-role'
 
 interface SessionContextValue {
+  user: PermissionUser
   role: Role
   setRole: (role: Role) => void
-  userName: string
-  can: (capability: Capability) => boolean
+  can: (permission: Permission) => boolean
+  hasPermission: (permission: Permission) => boolean
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null)
 
 function readStoredRole(): Role {
   const stored = localStorage.getItem(STORAGE_KEY)
-  if (
-    stored === 'Admin' ||
-    stored === 'Operations Manager' ||
-    stored === 'Support Agent' ||
-    stored === 'Viewer'
-  ) {
-    return stored
+  return isRole(stored) ? stored : 'Operations Manager'
+}
+
+function buildUser(role: Role): PermissionUser {
+  return {
+    id: 'user-demo',
+    name: 'Alex Morgan',
+    email: 'alex.morgan@opshub.demo',
+    role,
   }
-  return 'Operations Manager'
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -41,15 +49,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setRoleState(next)
   }, [])
 
-  const value = useMemo<SessionContextValue>(
-    () => ({
+  const value = useMemo<SessionContextValue>(() => {
+    const user = buildUser(role)
+    return {
+      user,
       role,
       setRole,
-      userName: 'Alex Morgan',
-      can: (capability) => can(role, capability),
-    }),
-    [role, setRole],
-  )
+      can: (permission) => canPermission(user, permission),
+      hasPermission: (permission) => hasPermissionCheck(user, permission),
+    }
+  }, [role, setRole])
 
   return (
     <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

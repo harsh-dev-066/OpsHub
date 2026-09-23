@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -14,21 +13,17 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  describedByIds,
+  FormField,
+} from '@/features/tickets/form-field'
+import {
+  ticketCategories,
   ticketFormSchema,
+  ticketPriorities,
   type TicketFormValues,
 } from '@/features/tickets/ticket-schema'
 import { propertiesApi, unitsApi, usersApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
-
-const categories = [
-  'maintenance',
-  'cleaning',
-  'noise',
-  'billing',
-  'access',
-  'other',
-] as const
-const priorities = ['low', 'medium', 'high', 'critical'] as const
 
 interface TicketFormProps {
   defaultValues?: Partial<TicketFormValues>
@@ -47,6 +42,8 @@ export function TicketForm({
 }: TicketFormProps) {
   const form = useForm<TicketFormValues>({
     resolver: zodResolver(ticketFormSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: {
       title: '',
       description: '',
@@ -61,6 +58,7 @@ export function TicketForm({
 
   const propertyId = form.watch('propertyId')
   const previousPropertyId = useRef(propertyId)
+  const errors = form.formState.errors
 
   const propertiesQuery = useQuery({
     queryKey: queryKeys.properties.list({ page: 1, pageSize: 100 }),
@@ -93,47 +91,54 @@ export function TicketForm({
       })}
       noValidate
     >
-      <div className="space-y-2">
-        <Label htmlFor="title">Title</Label>
+      <FormField id="title" label="Title" error={errors.title?.message}>
         <Input
           id="title"
+          autoComplete="off"
           {...form.register('title')}
-          aria-invalid={!!form.formState.errors.title}
+          aria-invalid={!!errors.title}
+          aria-describedby={describedByIds('title', !!errors.title)}
         />
-        {form.formState.errors.title ? (
-          <p className="text-sm text-destructive" role="alert">
-            {form.formState.errors.title.message}
-          </p>
-        ) : null}
-      </div>
+      </FormField>
 
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+      <FormField
+        id="description"
+        label="Description"
+        error={errors.description?.message}
+      >
         <Textarea
           id="description"
+          rows={4}
           {...form.register('description')}
-          aria-invalid={!!form.formState.errors.description}
+          aria-invalid={!!errors.description}
+          aria-describedby={describedByIds('description', !!errors.description)}
         />
-        {form.formState.errors.description ? (
-          <p className="text-sm text-destructive" role="alert">
-            {form.formState.errors.description.message}
-          </p>
-        ) : null}
-      </div>
+      </FormField>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Category</Label>
+        <FormField
+          id="category"
+          label="Category"
+          error={errors.category?.message}
+        >
           <Controller
             control={form.control}
             name="category"
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger aria-label="Category">
+                <SelectTrigger
+                  id="category"
+                  aria-label="Category"
+                  aria-invalid={!!errors.category}
+                  aria-describedby={describedByIds(
+                    'category',
+                    !!errors.category,
+                  )}
+                >
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
+                  {ticketCategories.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
                     </SelectItem>
@@ -142,20 +147,31 @@ export function TicketForm({
               </Select>
             )}
           />
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <Label>Priority</Label>
+        <FormField
+          id="priority"
+          label="Priority"
+          error={errors.priority?.message}
+        >
           <Controller
             control={form.control}
             name="priority"
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger aria-label="Priority">
+                <SelectTrigger
+                  id="priority"
+                  aria-label="Priority"
+                  aria-invalid={!!errors.priority}
+                  aria-describedby={describedByIds(
+                    'priority',
+                    !!errors.priority,
+                  )}
+                >
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
-                  {priorities.map((priority) => (
+                  {ticketPriorities.map((priority) => (
                     <SelectItem key={priority} value={priority}>
                       {priority}
                     </SelectItem>
@@ -164,18 +180,38 @@ export function TicketForm({
               </Select>
             )}
           />
-        </div>
+        </FormField>
       </div>
 
-      <div className="space-y-2">
-        <Label>Property</Label>
+      <FormField
+        id="propertyId"
+        label="Property"
+        error={errors.propertyId?.message}
+      >
         <Controller
           control={form.control}
           name="propertyId"
           render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger aria-label="Property">
-                <SelectValue placeholder="Select property" />
+              <SelectTrigger
+                id="propertyId"
+                aria-label="Property"
+                aria-invalid={!!errors.propertyId}
+                aria-describedby={describedByIds(
+                  'propertyId',
+                  !!errors.propertyId,
+                )}
+                disabled={propertiesQuery.isLoading || propertiesQuery.isError}
+              >
+                <SelectValue
+                  placeholder={
+                    propertiesQuery.isLoading
+                      ? 'Loading properties...'
+                      : propertiesQuery.isError
+                        ? 'Unable to load properties'
+                        : 'Select property'
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {(propertiesQuery.data?.data ?? []).map((property) => (
@@ -187,15 +223,13 @@ export function TicketForm({
             </Select>
           )}
         />
-        {form.formState.errors.propertyId ? (
-          <p className="text-sm text-destructive" role="alert">
-            {form.formState.errors.propertyId.message}
-          </p>
-        ) : null}
-      </div>
+      </FormField>
 
-      <div className="space-y-2">
-        <Label>Unit</Label>
+      <FormField
+        id="unitId"
+        label="Unit"
+        description="Optional. Units refresh when the property changes."
+      >
         <Controller
           control={form.control}
           name="unitId"
@@ -205,10 +239,22 @@ export function TicketForm({
               onValueChange={(value) =>
                 field.onChange(value === 'none' ? null : value)
               }
-              disabled={!propertyId}
+              disabled={!propertyId || unitsQuery.isLoading}
             >
-              <SelectTrigger aria-label="Unit">
-                <SelectValue placeholder="Select unit (optional)" />
+              <SelectTrigger
+                id="unitId"
+                aria-label="Unit"
+                aria-describedby={describedByIds('unitId', false, true)}
+              >
+                <SelectValue
+                  placeholder={
+                    !propertyId
+                      ? 'Select a property first'
+                      : unitsQuery.isLoading
+                        ? 'Loading units...'
+                        : 'Select unit (optional)'
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No unit</SelectItem>
@@ -221,10 +267,9 @@ export function TicketForm({
             </Select>
           )}
         />
-      </div>
+      </FormField>
 
-      <div className="space-y-2">
-        <Label>Assignee</Label>
+      <FormField id="assignee" label="Assignee">
         <Controller
           control={form.control}
           name="assignee"
@@ -235,8 +280,18 @@ export function TicketForm({
                 field.onChange(value === 'unassigned' ? null : value)
               }
             >
-              <SelectTrigger aria-label="Assignee">
-                <SelectValue placeholder="Select assignee" />
+              <SelectTrigger
+                id="assignee"
+                aria-label="Assignee"
+                disabled={usersQuery.isLoading}
+              >
+                <SelectValue
+                  placeholder={
+                    usersQuery.isLoading
+                      ? 'Loading assignees...'
+                      : 'Select assignee'
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="unassigned">Unassigned</SelectItem>
@@ -249,7 +304,7 @@ export function TicketForm({
             </Select>
           )}
         />
-      </div>
+      </FormField>
 
       <div className="flex justify-end gap-2 pt-2">
         {onCancel ? (

@@ -5,6 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Shared label style for KPI / summary metrics. */
+export const metricLabelClassName =
+  'text-xs font-medium uppercase tracking-wide text-muted-foreground'
+
+/** Shared value style for KPI / summary metrics. */
+export const metricValueClassName =
+  'mt-2 text-2xl font-semibold tabular-nums'
+
 export function formatCurrency(value: number, currency = 'USD') {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -26,13 +34,7 @@ export function formatPercent(value: number) {
   return `${Math.round(value)}%`
 }
 
-export function debounce<T extends (...args: Parameters<T>) => void>(
-  fn: T,
-  delay: number,
-) {
-  let timer: ReturnType<typeof setTimeout> | undefined
-  return (...args: Parameters<T>) => {
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => fn(...args), delay)
-  }
+/** Turns `in_progress` / `1br` into readable labels. */
+export function formatLabel(value: string) {
+  return value.replaceAll('_', ' ')
 }

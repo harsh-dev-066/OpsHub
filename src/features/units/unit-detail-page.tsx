@@ -1,13 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
+import { toast } from 'sonner'
 import { QueryErrorState } from '@/components/feedback/states'
 import { UnitStatusBadge } from '@/components/feedback/status-badges'
 import { PageHeader, SectionCard } from '@/components/navigation/page-header'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Can } from '@/features/auth/permissions'
+import { ApiError } from '@/lib/api/client'
 import { unitsApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, formatLabel } from '@/lib/utils'
 
 export function UnitDetailPage() {
   const { unitId } = useParams({ from: '/units/$unitId' })
@@ -17,20 +20,18 @@ export function UnitDetailPage() {
     queryFn: () => unitsApi.getById(unitId),
   })
 
-  if (unitQuery.isError) {
-    return <QueryErrorState onRetry={() => unitQuery.refetch()} />
-  }
-
   const unit = unitQuery.data
+  const isNotFound =
+    unitQuery.error instanceof ApiError && unitQuery.error.status === 404
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
-        title={unit ? `Unit ${unit.unitNumber}` : 'Unit'}
+        title={unit ? `Unit ${unit.unitNumber}` : isNotFound ? 'Unit not found' : 'Unit'}
         description={
           unit?.property
-            ? `${unit.property.name} · ${unit.type.toUpperCase()}`
-            : 'Loading unit details...'
+            ? `${unit.property.name} · ${formatLabel(unit.type)}`
+            : undefined
         }
         breadcrumbs={[
           { label: 'Units', to: '/units' },
@@ -38,16 +39,47 @@ export function UnitDetailPage() {
         ]}
         actions={
           unit ? (
-            <Button asChild variant="outline">
-              <Link to="/tickets" search={{ propertyId: unit.propertyId }}>
-                Related tickets
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline">
+                <Link to="/tickets" search={{ propertyId: unit.propertyId }}>
+                  Related tickets
+                </Link>
+              </Button>
+              <Can permission="units:write">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    toast.message('Unit edit is a UX demo action', {
+                      description:
+                        'A real API would authorize this mutation server-side.',
+                    })
+                  }
+                >
+                  Edit unit
+                </Button>
+              </Can>
+            </div>
           ) : null
         }
       />
 
-      {unitQuery.isLoading || !unit ? (
+      {unitQuery.isError ? (
+        <QueryErrorState
+          title={isNotFound ? 'Unit not found' : 'Unable to load unit'}
+          description={
+            isNotFound
+              ? 'This unit may have been removed or the link is invalid.'
+              : unitQuery.error.message
+          }
+          onRetry={isNotFound ? undefined : () => unitQuery.refetch()}
+          action={
+            <Button asChild variant="outline">
+              <Link to="/units">Back to units</Link>
+            </Button>
+          }
+        />
+      ) : unitQuery.isLoading || !unit ? (
         <div className="grid gap-4 md:grid-cols-2">
           <Skeleton className="h-40 w-full" />
           <Skeleton className="h-40 w-full" />
@@ -68,7 +100,9 @@ export function UnitDetailPage() {
               </div>
               <div>
                 <dt className="text-muted-foreground">Type</dt>
-                <dd className="mt-1 font-medium">{unit.type}</dd>
+                <dd className="mt-1 font-medium">
+                  {formatLabel(unit.type)}
+                </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">Monthly rate</dt>

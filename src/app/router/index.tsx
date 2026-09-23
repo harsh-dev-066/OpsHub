@@ -10,6 +10,8 @@ import { z } from 'zod'
 import { AppLayout } from '@/app/layouts/AppLayout'
 import { NotFoundPage } from '@/features/settings/not-found-page'
 import { Skeleton } from '@/components/ui/skeleton'
+import { propertiesSearchSchema } from '@/features/properties/properties-search'
+import { ticketsSearchSchema } from '@/features/tickets/ticket-schema'
 
 const DashboardPage = lazy(() =>
   import('@/features/dashboard/dashboard-page').then((m) => ({
@@ -98,6 +100,7 @@ const dashboardRoute = createRoute({
 const propertiesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/properties',
+  validateSearch: propertiesSearchSchema,
   component: () => (
     <LazyPage>
       <PropertiesPage />
@@ -115,9 +118,14 @@ const propertyDetailRoute = createRoute({
   ),
 })
 
+const unitsSearchSchema = z.object({
+  propertyId: z.string().optional(),
+})
+
 const unitsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/units',
+  validateSearch: unitsSearchSchema,
   component: () => (
     <LazyPage>
       <UnitsPage />
@@ -133,10 +141,6 @@ const unitDetailRoute = createRoute({
       <UnitDetailPage />
     </LazyPage>
   ),
-})
-
-const ticketsSearchSchema = z.object({
-  propertyId: z.string().optional(),
 })
 
 const ticketsRoute = createRoute({

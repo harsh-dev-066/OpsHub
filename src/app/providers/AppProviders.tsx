@@ -20,7 +20,16 @@ export function AppProviders() {
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
         <RouterProvider router={router} />
-        <Toaster richColors position="top-right" closeButton />
+        <Toaster
+          richColors
+          position="top-right"
+          closeButton
+          toastOptions={{
+            classNames: {
+              toast: 'border bg-card text-foreground shadow-md',
+            },
+          }}
+        />
         {import.meta.env.DEV ? (
           <ReactQueryDevtools initialIsOpen={false} />
         ) : null}

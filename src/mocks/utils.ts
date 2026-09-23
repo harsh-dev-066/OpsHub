@@ -8,7 +8,20 @@ export function delay(ms?: number) {
   return new Promise((resolve) => setTimeout(resolve, latency))
 }
 
-export function shouldFailMutation(rate = 0.05) {
+export function shouldForceError(request: Request) {
+  const url = new URL(request.url)
+  const header = request.headers.get('x-mock-fail')
+  return (
+    header === '1' ||
+    header === 'true' ||
+    url.searchParams.get('forceError') === '1'
+  )
+}
+
+export function shouldFailMutation(request?: Request, rate = 0.05) {
+  if (request && shouldForceError(request)) {
+    return true
+  }
   if (import.meta.env.MODE === 'test') {
     return false
   }

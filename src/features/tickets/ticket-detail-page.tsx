@@ -24,25 +24,20 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useSession } from '@/features/settings/session-context'
+import { Can } from '@/features/auth/permissions'
 import { TicketForm } from '@/features/tickets/ticket-form'
-import type { TicketFormValues } from '@/features/tickets/ticket-schema'
+import {
+  ticketStatuses,
+  type TicketFormValues,
+} from '@/features/tickets/ticket-schema'
+import { ApiError } from '@/lib/api/client'
 import { ticketsApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatLabel } from '@/lib/utils'
 import type { PaginatedResponse, Ticket, TicketStatus } from '@/types/domain'
-
-const statusOptions: TicketStatus[] = [
-  'open',
-  'in_progress',
-  'waiting',
-  'resolved',
-  'closed',
-]
 
 export function TicketDetailPage() {
   const { ticketId } = useParams({ from: '/tickets/$ticketId' })
-  const { can } = useSession()
   const queryClient = useQueryClient()
   const [editOpen, setEditOpen] = useState(false)
 
@@ -54,39 +49,17 @@ export function TicketDetailPage() {
   const updateMutation = useMutation({
     mutationFn: (payload: Partial<Ticket>) =>
       ticketsApi.update(ticketId, payload),
-    onMutate: async (payload) => {
-      await queryClient.cancelQueries({
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
         queryKey: queryKeys.tickets.detail(ticketId),
       })
-      const previous = queryClient.getQueryData(
-        queryKeys.tickets.detail(ticketId),
-      )
-      queryClient.setQueryData(
-        queryKeys.tickets.detail(ticketId),
-        (old: typeof previous) =>
-          old && typeof old === 'object'
-            ? { ...old, ...payload, updatedAt: new Date().toISOString() }
-            : old,
-      )
-      return { previous }
-    },
-    onError: (error: Error, _payload, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(
-          queryKeys.tickets.detail(ticketId),
-          context.previous,
-        )
-      }
-      toast.error(error.message || 'Failed to update ticket')
-    },
-    onSuccess: async (ticket) => {
-      queryClient.setQueryData(queryKeys.tickets.detail(ticketId), (old) =>
-        old && typeof old === 'object' ? { ...old, ...ticket } : old,
-      )
       await queryClient.invalidateQueries({ queryKey: queryKeys.tickets.all })
       await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all })
       toast.success('Ticket updated')
       setEditOpen(false)
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update ticket')
     },
   })
 
@@ -144,47 +117,72 @@ export function TicketDetailPage() {
     },
   })
 
-  if (ticketQuery.isError) {
-    return <QueryErrorState onRetry={() => ticketQuery.refetch()} />
-  }
-
   const ticket = ticketQuery.data
+  const isNotFound =
+    ticketQuery.error instanceof ApiError && ticketQuery.error.status === 404
 
   async function handleEdit(values: TicketFormValues) {
-    await updateMutation.mutateAsync({
-      title: values.title,
-      description: values.description,
-      category: values.category,
-      priority: values.priority,
-      propertyId: values.propertyId,
-      unitId: values.unitId ?? null,
-      assignee: values.assignee ?? null,
-    })
+    try {
+      await updateMutation.mutateAsync({
+        title: values.title,
+        description: values.description,
+        category: values.category,
+        priority: values.priority,
+        propertyId: values.propertyId,
+        unitId: values.unitId ?? null,
+        assignee: values.assignee ?? null,
+      })
+    } catch {
+      // Keep dialog open; toast handled by mutation onError.
+    }
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
-        title={ticket?.title ?? 'Ticket'}
-        description={ticket?.id ?? 'Loading ticket details...'}
+        title={
+          ticket?.title ?? (isNotFound ? 'Ticket not found' : 'Ticket')
+        }
+        description={
+          ticket
+            ? `${formatLabel(ticket.category)} · ${formatLabel(ticket.status)}`
+            : undefined
+        }
         breadcrumbs={[
           { label: 'Tickets', to: '/tickets' },
           { label: ticket?.id ?? 'Detail' },
         ]}
         actions={
-          can('tickets:edit') ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEditOpen(true)}
-            >
-              Edit ticket
-            </Button>
+          ticket ? (
+            <Can permission="tickets:edit">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditOpen(true)}
+              >
+                Edit ticket
+              </Button>
+            </Can>
           ) : null
         }
       />
 
-      {ticketQuery.isLoading || !ticket ? (
+      {ticketQuery.isError ? (
+        <QueryErrorState
+          title={isNotFound ? 'Ticket not found' : 'Unable to load ticket'}
+          description={
+            isNotFound
+              ? 'This ticket may have been removed or the link is invalid.'
+              : ticketQuery.error.message
+          }
+          onRetry={isNotFound ? undefined : () => ticketQuery.refetch()}
+          action={
+            <Button asChild variant="outline">
+              <Link to="/tickets">Back to tickets</Link>
+            </Button>
+          }
+        />
+      ) : ticketQuery.isLoading || !ticket ? (
         <div className="grid gap-4 md:grid-cols-2">
           <Skeleton className="h-48 w-full" />
           <Skeleton className="h-48 w-full" />
@@ -192,7 +190,7 @@ export function TicketDetailPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-3">
           <SectionCard title="Details" className="lg:col-span-2">
-            <dl className="grid gap-4 sm:grid-cols-2 text-sm">
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
                 <dt className="text-muted-foreground">Status</dt>
                 <dd className="mt-1">
@@ -207,7 +205,9 @@ export function TicketDetailPage() {
               </div>
               <div>
                 <dt className="text-muted-foreground">Category</dt>
-                <dd className="mt-1 font-medium">{ticket.category}</dd>
+                <dd className="mt-1 font-medium">
+                  {formatLabel(ticket.category)}
+                </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">Assignee</dt>
@@ -264,8 +264,15 @@ export function TicketDetailPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Status transition">
-            {can('tickets:transition') ? (
+          <SectionCard title="Status">
+            <Can
+              permission="tickets:transition"
+              fallback={
+                <p className="text-sm text-muted-foreground">
+                  Your current role can view tickets but cannot change status.
+                </p>
+              }
+            >
               <div className="space-y-3">
                 <Select
                   value={ticket.status}
@@ -278,23 +285,18 @@ export function TicketDetailPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {statusOptions.map((status) => (
+                    {ticketStatuses.map((status) => (
                       <SelectItem key={status} value={status}>
-                        {status.replaceAll('_', ' ')}
+                        {formatLabel(status)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Status changes apply immediately with optimistic UI and roll
-                  back if the request fails.
+                  Changes save immediately.
                 </p>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Your current role can view tickets but cannot change status.
-              </p>
-            )}
+            </Can>
           </SectionCard>
         </div>
       )}

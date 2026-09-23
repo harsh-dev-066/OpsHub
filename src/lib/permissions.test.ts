@@ -1,21 +1,73 @@
 import { describe, expect, it } from 'vitest'
-import { can } from '@/lib/permissions'
+import {
+  can,
+  canAll,
+  canAny,
+  getPermissionsForRole,
+  hasPermission,
+  type PermissionUser,
+} from '@/lib/permissions'
 
-describe('permissions', () => {
-  it('grants Admin full access', () => {
-    expect(can('Admin', 'tickets:create')).toBe(true)
-    expect(can('Admin', 'properties:write')).toBe(true)
+const adminUser: PermissionUser = {
+  id: '1',
+  name: 'Admin User',
+  email: 'admin@opshub.demo',
+  role: 'Admin',
+}
+
+const supportUser: PermissionUser = {
+  id: '2',
+  name: 'Support User',
+  email: 'support@opshub.demo',
+  role: 'Support Agent',
+}
+
+const viewerUser: PermissionUser = {
+  id: '3',
+  name: 'Viewer User',
+  email: 'viewer@opshub.demo',
+  role: 'Viewer',
+}
+
+describe('permission model', () => {
+  it('exposes can(user, permission) and hasPermission(user, permission)', () => {
+    expect(can(adminUser, 'properties:write')).toBe(true)
+    expect(hasPermission(adminUser, 'properties:write')).toBe(true)
+    expect(can(supportUser, 'properties:write')).toBe(false)
+    expect(hasPermission(viewerUser, 'tickets:create')).toBe(false)
   })
 
-  it('limits Support Agent property writes', () => {
-    expect(can('Support Agent', 'properties:read')).toBe(true)
-    expect(can('Support Agent', 'properties:write')).toBe(false)
-    expect(can('Support Agent', 'tickets:create')).toBe(true)
+  it('accepts a Role directly for convenience', () => {
+    expect(can('Operations Manager', 'units:write')).toBe(true)
+    expect(hasPermission('Viewer', 'tickets:transition')).toBe(false)
   })
 
-  it('makes Viewer read-only for tickets', () => {
-    expect(can('Viewer', 'tickets:read')).toBe(true)
-    expect(can('Viewer', 'tickets:create')).toBe(false)
-    expect(can('Viewer', 'tickets:transition')).toBe(false)
+  it('supports canAny and canAll helpers', () => {
+    expect(
+      canAny(supportUser, ['properties:write', 'tickets:create']),
+    ).toBe(true)
+    expect(
+      canAll(supportUser, ['properties:read', 'tickets:create']),
+    ).toBe(true)
+    expect(
+      canAll(supportUser, ['properties:write', 'tickets:create']),
+    ).toBe(false)
+  })
+
+  it('lists permissions for each role without hardcoding checks in callers', () => {
+    expect(getPermissionsForRole('Admin')).toContain('properties:write')
+    expect(getPermissionsForRole('Support Agent')).not.toContain(
+      'properties:write',
+    )
+    expect(getPermissionsForRole('Viewer')).not.toContain('tickets:edit')
+  })
+
+  it('documents Viewer ticket and property write limits', () => {
+    expect(can(viewerUser, 'tickets:create')).toBe(false)
+    expect(can(viewerUser, 'tickets:edit')).toBe(false)
+    expect(can(viewerUser, 'tickets:transition')).toBe(false)
+    expect(can(viewerUser, 'properties:write')).toBe(false)
+    expect(can(viewerUser, 'units:write')).toBe(false)
+    expect(can(viewerUser, 'settings:write')).toBe(true)
   })
 })

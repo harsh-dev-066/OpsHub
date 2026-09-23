@@ -17,11 +17,11 @@ Real production apps are often confidential. OpsHub gives interviewers something
 
 ## Key features
 
-- **Dashboard** — occupancy KPIs, trends, ticket breakdowns, recent activity
-- **Properties** — searchable/filterable/sortable paginated table + property detail
+- **Dashboard** — occupancy/available/maintenance/open-ticket KPIs, Recharts occupancy trend and ticket breakdowns, recent activity, quick links to properties and tickets; composed from feature sections with skeleton, error, and empty states
+- **Properties** — URL-synced search/city/status/sort/pagination, row actions, shareable filters, and property detail (summary, occupancy, units, tickets, activity)
 - **Units** — portfolio unit listing + resident/contract detail
-- **Tickets** — filters, create/edit forms (RHF + Zod), optimistic status updates
-- **Settings** — demo role switcher for frontend RBAC UX checks
+- **Tickets** — URL-synced search/status/priority/category/pagination; RHF+Zod create/edit; optimistic status updates with rollback; toast success/error feedback
+- **Settings** — demo role switcher + effective permissions list; typed `can`/`hasPermission`/`Can` gates (UX-only, not auth)
 - **App shell** — responsive sidebar, top bar, breadcrumbs, consistent feedback states
 
 ## Tech stack
@@ -49,7 +49,7 @@ Feature-oriented structure:
 
 Server state is owned by TanStack Query. Local React state is limited to UI concerns (filters, dialogs, debounced search). Pages call typed API helpers; they never import mock seed arrays.
 
-See [docs/architecture.md](docs/architecture.md) for details.
+See [.cursor/rules/architecture.md](.cursor/rules/architecture.md) for details.
 
 ## Local setup
 
@@ -84,9 +84,9 @@ src/
   lib/            # api, query keys, permissions, utils
   mocks/          # handlers + seed data + MSW worker bootstrap
   types/          # shared domain types
-  styles/         # global CSS / design tokens
+  theme/          # colors, tokens, Tailwind theme, chart colors
   test/           # test setup + helpers
-docs/             # architecture, domain, API, decisions, walkthrough
+.cursor/rules/    # architecture, domain, API, decisions, walkthrough, theme
 ```
 
 ## Mock API approach
@@ -108,7 +108,7 @@ Vitest + React Testing Library focus on behavior:
 - dashboard KPI rendering
 - property search/filter
 - ticket form validation
-- ticket creation
+- successful and failed ticket creation
 - ticket status updates
 - permission-based UI
 - error-state rendering
@@ -140,7 +140,7 @@ MSW is reused in tests so components exercise the same API boundary.
 - Shared data-table primitive separated from page business logic
 - Frontend RBAC is UX-only (documented explicitly)
 
-More in [docs/decisions.md](docs/decisions.md).
+More in [.cursor/rules/decisions.md](.cursor/rules/decisions.md).
 
 ## Trade-offs
 
@@ -159,8 +159,9 @@ More in [docs/decisions.md](docs/decisions.md).
 
 ## Documentation
 
-- [Architecture](docs/architecture.md)
-- [Domain model](docs/domain-model.md)
-- [API](docs/api.md)
-- [Decisions](docs/decisions.md)
-- [Interview walkthrough](docs/interview-walkthrough.md)
+- [Architecture](.cursor/rules/architecture.md)
+- [Domain model](.cursor/rules/domain-model.md)
+- [API](.cursor/rules/api.md)
+- [Decisions](.cursor/rules/decisions.md)
+- [Interview walkthrough](.cursor/rules/interview-walkthrough.md)
+- [Theme](.cursor/rules/theme.md)

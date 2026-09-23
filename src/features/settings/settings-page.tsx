@@ -7,18 +7,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { usePermissions } from '@/features/auth/permissions'
 import { useSession } from '@/features/settings/session-context'
-import { ROLE_OPTIONS } from '@/lib/permissions'
+import {
+  getPermissionsForRole,
+  ROLE_DESCRIPTIONS,
+  ROLE_OPTIONS,
+} from '@/lib/permissions'
 import type { Role } from '@/types/domain'
 
 export function SettingsPage() {
-  const { role, setRole, userName } = useSession()
+  const { role, setRole, user } = useSession()
+  const { can } = usePermissions()
+  const activePermissions = getPermissionsForRole(role)
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Settings"
-        description="Demo profile and role switcher for interviewing UX permission checks."
+        description="Demo profile and role switcher for interviewing UX-only permissions."
       />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -26,47 +33,66 @@ export function SettingsPage() {
           <dl className="space-y-3 text-sm">
             <div>
               <dt className="text-muted-foreground">Name</dt>
-              <dd className="mt-1 font-medium">{userName}</dd>
+              <dd className="mt-1 font-medium">{user.name}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Email</dt>
-              <dd className="mt-1">alex.morgan@opshub.demo</dd>
+              <dd className="mt-1">{user.email}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Current role</dt>
-              <dd className="mt-1 font-medium">{role}</dd>
+              <dd className="mt-1 font-medium">{user.role}</dd>
             </div>
           </dl>
         </SectionCard>
 
-        <SectionCard
-          title="Demo role switcher"
-          description="Frontend-only. Backend authorization would remain the source of truth."
-        >
-          <div className="space-y-2">
-            <Label htmlFor="role">Active role</Label>
-            <Select
-              value={role}
-              onValueChange={(value) => setRole(value as Role)}
-            >
-              <SelectTrigger id="role" aria-label="Select demo role">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ROLE_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <SectionCard title="Demo role switcher">
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="role">Active role</Label>
+              <Select
+                value={role}
+                onValueChange={(value) => setRole(value as Role)}
+                disabled={!can('settings:write')}
+              >
+                <SelectTrigger id="role" aria-label="Select demo role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Use this control during demos to show how create/edit/status
-              actions hide or disable by role.
+              {ROLE_DESCRIPTIONS[role]}
+            </p>
+            <p className="rounded-md border border-warning bg-warning px-3 py-2 text-xs text-warning-foreground">
+              Switching roles only changes what the UI shows. Backend
+              authorization remains the security boundary in a real application.
             </p>
           </div>
         </SectionCard>
       </div>
+
+      <SectionCard
+        title="Effective permissions"
+        description="Capabilities granted to the active demo role."
+      >
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {activePermissions.map((permission) => (
+            <li
+              key={permission}
+              className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs"
+            >
+              {permission}
+            </li>
+          ))}
+        </ul>
+      </SectionCard>
     </div>
   )
 }

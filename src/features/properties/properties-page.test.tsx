@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { renderApp } from '@/test/test-utils'
 
 describe('Properties page', () => {
-  it('filters properties by search', async () => {
+  it('filters properties by search and syncs the URL', async () => {
     const user = userEvent.setup()
-    renderApp('/properties')
+    const { router } = renderApp('/properties')
 
     expect(
       await screen.findByRole('heading', { name: 'Properties' }),
@@ -24,11 +24,15 @@ describe('Properties page', () => {
         screen.queryByText('Harbor View Residences'),
       ).not.toBeInTheDocument()
     })
+
+    await waitFor(() => {
+      expect(router.state.location.search.search).toBe('Cedar Lane')
+    })
   })
 
-  it('filters properties by status', async () => {
+  it('filters properties by status via URL-backed controls', async () => {
     const user = userEvent.setup()
-    renderApp('/properties')
+    const { router } = renderApp('/properties')
 
     await screen.findByText('Harbor View Residences')
 
@@ -45,7 +49,42 @@ describe('Properties page', () => {
       ).not.toBeInTheDocument()
     })
 
+    await waitFor(() => {
+      expect(router.state.location.search.status).toBe('inactive')
+    })
+
     const table = screen.getByRole('table')
     expect(within(table).getByText('inactive')).toBeInTheDocument()
+    expect(within(table).getByRole('link', { name: 'View' })).toBeInTheDocument()
+  })
+
+  it('hydrates filters from URL search params', async () => {
+    renderApp('/properties?status=inactive&search=Oakwood')
+
+    expect(
+      await screen.findByRole('heading', { name: 'Properties' }),
+    ).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.getByText('Oakwood Commons')).toBeInTheDocument()
+      expect(
+        screen.queryByText('Harbor View Residences'),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it('renders property detail summary and tabs', async () => {
+    renderApp('/properties/prop-001')
+
+    expect(
+      await screen.findByRole('heading', { name: 'Harbor View Residences' }),
+    ).toBeInTheDocument()
+
+    expect(screen.getByLabelText('Property summary')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Units' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('tab', { name: 'Recent tickets' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Activity' })).toBeInTheDocument()
   })
 })

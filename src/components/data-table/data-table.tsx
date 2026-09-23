@@ -2,8 +2,6 @@ import {
   flexRender,
   getCoreRowModel,
   useReactTable,
-  type ColumnDef,
-  type SortingState,
 } from '@tanstack/react-table'
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -17,29 +15,17 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { EmptyState, QueryErrorState } from '@/components/feedback/states'
+import { cn } from '@/lib/utils'
+import type { DataTableProps } from '@/components/data-table/types'
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  sorting?: SortingState
-  onSortingChange?: (sorting: SortingState) => void
-  isLoading?: boolean
-  isError?: boolean
-  onRetry?: () => void
-  emptyTitle?: string
-  emptyDescription?: string
-  page?: number
-  pageSize?: number
-  total?: number
-  totalPages?: number
-  onPageChange?: (page: number) => void
-}
+export type { DataTableProps } from '@/components/data-table/types'
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   sorting = [],
   onSortingChange,
+  enableSorting = true,
   isLoading,
   isError,
   onRetry,
@@ -50,14 +36,20 @@ export function DataTable<TData, TValue>({
   total = 0,
   totalPages = 1,
   onPageChange,
+  getRowId,
+  tableContainerClassName,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
     columns,
     state: { sorting },
+    enableSorting,
     manualSorting: true,
     manualPagination: true,
     getCoreRowModel: getCoreRowModel(),
+    getRowId: getRowId
+      ? (row, index) => getRowId(row, index)
+      : undefined,
     onSortingChange: (updater) => {
       const next = typeof updater === 'function' ? updater(sorting) : updater
       onSortingChange?.(next)
@@ -68,9 +60,16 @@ export function DataTable<TData, TValue>({
     return <QueryErrorState onRetry={onRetry} />
   }
 
+  const rows = table.getRowModel().rows
+
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border bg-card">
+      <div
+        className={cn(
+          'overflow-hidden rounded-lg border bg-card',
+          tableContainerClassName,
+        )}
+      >
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -78,25 +77,48 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => {
                   const canSort = header.column.getCanSort()
                   const sorted = header.column.getIsSorted()
+                  const label =
+                    typeof header.column.columnDef.header === 'string'
+                      ? header.column.columnDef.header
+                      : header.column.id
+
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      aria-sort={
+                        canSort
+                          ? sorted === 'asc'
+                            ? 'ascending'
+                            : sorted === 'desc'
+                              ? 'descending'
+                              : 'none'
+                          : undefined
+                      }
+                    >
                       {header.isPlaceholder ? null : canSort ? (
                         <Button
                           type="button"
                           variant="ghost"
                           className="-ml-3 h-8 px-2"
                           onClick={header.column.getToggleSortingHandler()}
+                          aria-label={`Sort by ${label}`}
                         >
                           {flexRender(
                             header.column.columnDef.header,
                             header.getContext(),
                           )}
                           {sorted === 'asc' ? (
-                            <ArrowUp className="ml-1 h-3.5 w-3.5" />
+                            <ArrowUp className="ml-1 h-3.5 w-3.5" aria-hidden />
                           ) : sorted === 'desc' ? (
-                            <ArrowDown className="ml-1 h-3.5 w-3.5" />
+                            <ArrowDown
+                              className="ml-1 h-3.5 w-3.5"
+                              aria-hidden
+                            />
                           ) : (
-                            <ArrowUpDown className="ml-1 h-3.5 w-3.5 opacity-50" />
+                            <ArrowUpDown
+                              className="ml-1 h-3.5 w-3.5 opacity-50"
+                              aria-hidden
+                            />
                           )}
                         </Button>
                       ) : (
@@ -113,18 +135,20 @@ export function DataTable<TData, TValue>({
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              Array.from({ length: 5 }).map((_, rowIndex) => (
-                <TableRow key={`skeleton-${rowIndex}`}>
-                  {columns.map((_, colIndex) => (
-                    <TableCell key={`skeleton-${rowIndex}-${colIndex}`}>
-                      <Skeleton className="h-4 w-full" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+              Array.from({ length: Math.min(pageSize, 5) }).map(
+                (_, rowIndex) => (
+                  <TableRow key={`skeleton-${rowIndex}`}>
+                    {columns.map((_, colIndex) => (
+                      <TableCell key={`skeleton-${rowIndex}-${colIndex}`}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ),
+              )
+            ) : rows.length ? (
+              rows.map((row) => (
+                <TableRow key={row.id} data-row-id={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
@@ -151,7 +175,10 @@ export function DataTable<TData, TValue>({
       </div>
 
       {onPageChange ? (
-        <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+        <nav
+          aria-label="Table pagination"
+          className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+        >
           <p>
             {total === 0
               ? '0 results'
@@ -167,20 +194,20 @@ export function DataTable<TData, TValue>({
             >
               Previous
             </Button>
-            <span>
-              Page {page} of {totalPages}
+            <span className="tabular-nums">
+              Page {page} of {Math.max(totalPages, 1)}
             </span>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={page >= totalPages || isLoading}
+              disabled={page >= totalPages || isLoading || totalPages === 0}
               onClick={() => onPageChange(page + 1)}
             >
               Next
             </Button>
           </div>
-        </div>
+        </nav>
       ) : null}
     </div>
   )

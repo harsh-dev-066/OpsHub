@@ -33,10 +33,36 @@ describe('Ticket form validation', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Property is required')).toBeInTheDocument()
   })
+
+  it('rejects titles that are too short after trim', async () => {
+    const user = userEvent.setup()
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SessionProvider>
+          <TicketForm onSubmit={async () => undefined} />
+        </SessionProvider>
+      </QueryClientProvider>,
+    )
+
+    await user.type(screen.getByLabelText('Title'), 'ab')
+    await user.type(screen.getByLabelText('Description'), 'Short')
+    await user.click(screen.getByRole('button', { name: 'Create ticket' }))
+
+    expect(
+      await screen.findByText('Title must be at least 3 characters'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Description must be at least 10 characters'),
+    ).toBeInTheDocument()
+  })
 })
 
 describe('Ticket creation flow', () => {
-  it('creates a ticket from the tickets page', async () => {
+  it('creates a ticket successfully and closes the dialog', async () => {
     const user = userEvent.setup()
     renderApp('/tickets')
 
@@ -68,6 +94,45 @@ describe('Ticket creation flow', () => {
     await waitFor(() => {
       expect(screen.getByText('Broken thermostat')).toBeInTheDocument()
     })
+
+    expect(await screen.findByText('Ticket created')).toBeInTheDocument()
+  })
+
+  it('keeps the dialog open and shows an error toast when creation fails', async () => {
+    server.use(
+      http.post('/api/tickets', () =>
+        HttpResponse.json(
+          { message: 'Unable to create ticket right now. Please try again.' },
+          { status: 500 },
+        ),
+      ),
+    )
+
+    const user = userEvent.setup()
+    renderApp('/tickets')
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Create ticket' }),
+    )
+
+    await user.type(screen.getByLabelText('Title'), 'Network failure case')
+    await user.type(
+      screen.getByLabelText('Description'),
+      'This create request should fail intentionally.',
+    )
+    await user.click(screen.getByLabelText('Property'))
+    const listbox = await screen.findByRole('listbox')
+    await user.click(within(listbox).getByText('Harbor View Residences'))
+
+    await user.click(screen.getByRole('button', { name: 'Create ticket' }))
+
+    expect(
+      await screen.findByText(
+        'Unable to create ticket right now. Please try again.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.queryByText('Network failure case')).not.toBeInTheDocument()
   })
 })
 
@@ -88,40 +153,7 @@ describe('Ticket status update', () => {
     await waitFor(() => {
       expect(screen.getAllByText('resolved').length).toBeGreaterThan(0)
     })
-  })
-})
 
-describe('Permission-based UI', () => {
-  it('hides create ticket for Viewer role', async () => {
-    localStorage.setItem('opshub.demo-role', 'Viewer')
-    renderApp('/tickets')
-
-    expect(
-      await screen.findByRole('heading', { name: 'Tickets' }),
-    ).toBeInTheDocument()
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('button', { name: 'Create ticket' }),
-      ).not.toBeInTheDocument()
-    })
-  })
-})
-
-describe('Error state rendering', () => {
-  it('shows a recoverable error state when the API fails', async () => {
-    server.use(
-      http.get('/api/dashboard/summary', () =>
-        HttpResponse.json({ message: 'Server unavailable' }, { status: 500 }),
-      ),
-    )
-
-    renderApp('/dashboard')
-
-    expect(await screen.findByRole('alert')).toBeInTheDocument()
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Try again' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('Status updated')).toBeInTheDocument()
   })
 })

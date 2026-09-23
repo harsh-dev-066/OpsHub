@@ -5,13 +5,14 @@ import type {
   TicketPriority,
   TicketStatus,
 } from '@/types/domain'
-import { db, getOccupancyTrend } from '@/mocks/data/db'
+import { db, getOccupancyTrend } from '@/mocks/data'
 import {
   delay,
   matchesSearch,
   paginate,
   parseListParams,
   shouldFailMutation,
+  shouldForceError,
   sortByField,
 } from '@/mocks/utils'
 
@@ -19,9 +20,26 @@ function json(data: JsonBodyType, status = 200) {
   return HttpResponse.json(data, { status })
 }
 
+function forcedErrorResponse() {
+  return json(
+    { message: 'Forced mock failure for development/testing.' },
+    500,
+  )
+}
+
+async function withMockBehavior(request: Request) {
+  await delay()
+  if (shouldForceError(request)) {
+    return forcedErrorResponse()
+  }
+  return null
+}
+
 export const handlers = [
-  http.get('/api/dashboard/summary', async () => {
-    await delay()
+  http.get('/api/dashboard/summary', async ({ request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
+
     const totalUnits = db.units.length
     const occupied = db.units.filter((u) => u.status === 'occupied').length
     const available = db.units.filter((u) => u.status === 'available').length
@@ -45,13 +63,15 @@ export const handlers = [
     })
   }),
 
-  http.get('/api/dashboard/occupancy', async () => {
-    await delay()
+  http.get('/api/dashboard/occupancy', async ({ request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     return json(getOccupancyTrend())
   }),
 
-  http.get('/api/dashboard/tickets-by-priority', async () => {
-    await delay()
+  http.get('/api/dashboard/tickets-by-priority', async ({ request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     const priorities: TicketPriority[] = ['low', 'medium', 'high', 'critical']
     return json(
       priorities.map((name) => ({
@@ -61,8 +81,9 @@ export const handlers = [
     )
   }),
 
-  http.get('/api/dashboard/tickets-by-status', async () => {
-    await delay()
+  http.get('/api/dashboard/tickets-by-status', async ({ request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     const statuses: TicketStatus[] = [
       'open',
       'in_progress',
@@ -78,13 +99,15 @@ export const handlers = [
     )
   }),
 
-  http.get('/api/dashboard/activity', async () => {
-    await delay()
+  http.get('/api/dashboard/activity', async ({ request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     return json(db.activity.slice(0, 12))
   }),
 
   http.get('/api/properties', async ({ request }) => {
-    await delay()
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     const url = new URL(request.url)
     const params = parseListParams(url)
     let items = [...db.properties]
@@ -105,12 +128,12 @@ export const handlers = [
     }
 
     items = sortByField(items, params.sortBy, params.sortDirection ?? 'asc')
-
     return json(paginate(items, params.page, params.pageSize))
   }),
 
-  http.get('/api/properties/:id', async ({ params }) => {
-    await delay()
+  http.get('/api/properties/:id', async ({ params, request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     const property = db.properties.find((p) => p.id === params.id)
     if (!property) {
       return json({ message: 'Property not found.' }, 404)
@@ -119,7 +142,8 @@ export const handlers = [
   }),
 
   http.get('/api/properties/:id/units', async ({ params, request }) => {
-    await delay()
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     const url = new URL(request.url)
     const listParams = parseListParams(url)
     let items = db.units.filter((u) => u.propertyId === params.id)
@@ -140,12 +164,12 @@ export const handlers = [
       listParams.sortBy,
       listParams.sortDirection ?? 'asc',
     )
-
     return json(paginate(items, listParams.page, listParams.pageSize))
   }),
 
   http.get('/api/properties/:id/tickets', async ({ params, request }) => {
-    await delay()
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     const url = new URL(request.url)
     const listParams = parseListParams(url)
     let items = db.tickets.filter((t) => t.propertyId === params.id)
@@ -159,12 +183,12 @@ export const handlers = [
       listParams.sortBy ?? 'updatedAt',
       listParams.sortDirection ?? 'desc',
     )
-
     return json(paginate(items, listParams.page, listParams.pageSize))
   }),
 
   http.get('/api/units', async ({ request }) => {
-    await delay()
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     const url = new URL(request.url)
     const params = parseListParams(url)
     let items = [...db.units]
@@ -185,12 +209,12 @@ export const handlers = [
     }
 
     items = sortByField(items, params.sortBy, params.sortDirection ?? 'asc')
-
     return json(paginate(items, params.page, params.pageSize))
   }),
 
-  http.get('/api/units/:id', async ({ params }) => {
-    await delay()
+  http.get('/api/units/:id', async ({ params, request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     const unit = db.units.find((u) => u.id === params.id)
     if (!unit) {
       return json({ message: 'Unit not found.' }, 404)
@@ -201,8 +225,47 @@ export const handlers = [
     return json({ ...unit, residentDetail: resident, contract, property })
   }),
 
+  http.get('/api/residents', async ({ request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
+    const url = new URL(request.url)
+    const params = parseListParams(url)
+    let items = [...db.residents]
+
+    if (params.search) {
+      items = items.filter(
+        (r) =>
+          matchesSearch(r.name, params.search) ||
+          matchesSearch(r.email, params.search),
+      )
+    }
+
+    items = sortByField(items, params.sortBy ?? 'name', params.sortDirection ?? 'asc')
+    return json(paginate(items, params.page, params.pageSize))
+  }),
+
+  http.get('/api/contracts', async ({ request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
+    const url = new URL(request.url)
+    const params = parseListParams(url)
+    let items = [...db.contracts]
+
+    if (params.status) {
+      items = items.filter((c) => c.status === params.status)
+    }
+
+    items = sortByField(
+      items,
+      params.sortBy ?? 'startDate',
+      params.sortDirection ?? 'desc',
+    )
+    return json(paginate(items, params.page, params.pageSize))
+  }),
+
   http.get('/api/tickets', async ({ request }) => {
-    await delay()
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     const url = new URL(request.url)
     const params = parseListParams(url)
     let items = [...db.tickets]
@@ -233,12 +296,12 @@ export const handlers = [
       params.sortBy ?? 'updatedAt',
       params.sortDirection ?? 'desc',
     )
-
     return json(paginate(items, params.page, params.pageSize))
   }),
 
-  http.get('/api/tickets/:id', async ({ params }) => {
-    await delay()
+  http.get('/api/tickets/:id', async ({ params, request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     const ticket = db.tickets.find((t) => t.id === params.id)
     if (!ticket) {
       return json({ message: 'Ticket not found.' }, 404)
@@ -253,7 +316,7 @@ export const handlers = [
 
   http.post('/api/tickets', async ({ request }) => {
     await delay()
-    if (shouldFailMutation()) {
+    if (shouldFailMutation(request)) {
       return json(
         { message: 'Unable to create ticket right now. Please try again.' },
         500,
@@ -308,7 +371,7 @@ export const handlers = [
 
   http.patch('/api/tickets/:id', async ({ params, request }) => {
     await delay()
-    if (shouldFailMutation()) {
+    if (shouldFailMutation(request)) {
       return json(
         { message: 'Unable to update ticket right now. Please try again.' },
         500,
@@ -334,13 +397,15 @@ export const handlers = [
     return json(ticket)
   }),
 
-  http.get('/api/users', async () => {
-    await delay(150)
+  http.get('/api/users', async ({ request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     return json(db.users)
   }),
 
-  http.get('/api/meta/cities', async () => {
-    await delay(100)
+  http.get('/api/meta/cities', async ({ request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
     const cities = [...new Set(db.properties.map((p) => p.city))].sort()
     return json(cities)
   }),
