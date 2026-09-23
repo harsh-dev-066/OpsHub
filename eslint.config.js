@@ -20,14 +20,31 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Known unsafe-to-memoize APIs (TanStack Table, React Hook Form).
+      // Components using them intentionally skip React Compiler memoization.
+      'react-hooks/incompatible-library': 'off',
       'react-refresh/only-export-components': [
         'warn',
-        { allowConstantExport: true },
+        {
+          allowConstantExport: true,
+          allowExportNames: [
+            'useSession',
+            'usePermissions',
+            'describedByIds',
+          ],
+        },
       ],
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+    },
+  },
+  {
+    // Route modules export a router instance, not React components.
+    files: ['src/app/router/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
   prettier,

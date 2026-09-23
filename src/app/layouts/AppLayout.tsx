@@ -94,7 +94,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </a>
 
       <div className="flex min-h-screen">
-        <aside className="hidden w-[var(--sidebar-width)] shrink-0 border-r bg-card md:flex md:flex-col">
+        <aside className="hidden w-(--sidebar-width) shrink-0 border-r bg-card md:flex md:flex-col">
           <div className="px-4 py-5">
             <p className="text-lg font-semibold tracking-tight">OpsHub</p>
             <p className="text-xs text-muted-foreground">
@@ -116,7 +116,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               onClick={() => setMobileOpen(false)}
             />
             <aside
-              className="relative z-50 flex h-full w-[var(--sidebar-width)] flex-col border-r bg-card shadow-lg"
+              className="relative z-50 flex h-full w-(--sidebar-width) flex-col border-r bg-card shadow-lg"
               role="dialog"
               aria-modal="true"
               aria-label="Navigation"
@@ -145,7 +145,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         ) : null}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-[var(--header-height)] items-center justify-between gap-3 border-b bg-card/95 px-4 backdrop-blur">
+          <header className="sticky top-0 z-30 flex h-(--header-height) items-center justify-between gap-3 border-b bg-card/95 px-4 backdrop-blur">
             <div className="flex items-center gap-2">
               <Button
                 ref={menuButtonRef}
