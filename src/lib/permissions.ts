@@ -14,12 +14,15 @@ export type Permission =
   | 'tickets:edit'
   | 'tickets:transition'
   | 'settings:read'
-  | 'settings:write'
+  | 'users:read'
+  | 'users:write'
 
 export interface PermissionUser {
   id: string
   name: string
   email: string
+  roles: Role[]
+  /** Highest-privilege role for compact display. */
   role: Role
 }
 
@@ -34,7 +37,8 @@ export const ALL_PERMISSIONS = [
   'tickets:edit',
   'tickets:transition',
   'settings:read',
-  'settings:write',
+  'users:read',
+  'users:write',
 ] as const satisfies readonly Permission[]
 
 const rolePermissions = {
@@ -49,7 +53,8 @@ const rolePermissions = {
     'tickets:edit',
     'tickets:transition',
     'settings:read',
-    'settings:write',
+    'users:read',
+    'users:write',
   ],
   'Operations Manager': [
     'dashboard:read',
@@ -62,7 +67,7 @@ const rolePermissions = {
     'tickets:edit',
     'tickets:transition',
     'settings:read',
-    'settings:write',
+    'users:read',
   ],
   'Support Agent': [
     'dashboard:read',
@@ -73,7 +78,7 @@ const rolePermissions = {
     'tickets:edit',
     'tickets:transition',
     'settings:read',
-    'settings:write',
+    'users:read',
   ],
   Viewer: [
     'dashboard:read',
@@ -81,8 +86,7 @@ const rolePermissions = {
     'units:read',
     'tickets:read',
     'settings:read',
-    // Viewer may switch roles in Settings for exploring permissions.
-    'settings:write',
+    'users:read',
   ],
 } as const satisfies Record<Role, readonly Permission[]>
 
@@ -90,6 +94,13 @@ export type RolePermissionMap = typeof rolePermissions
 
 export const ROLE_OPTIONS: Role[] = [
   'Admin',
+  'Operations Manager',
+  'Support Agent',
+  'Viewer',
+]
+
+/** Roles that operators may assign in User Management (Admin is reserved). */
+export const ASSIGNABLE_ROLES: Role[] = [
   'Operations Manager',
   'Support Agent',
   'Viewer',
@@ -103,6 +114,13 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   Viewer: 'Read-only portfolio and ticket visibility.',
 }
 
+const ROLE_RANK: Record<Role, number> = {
+  Admin: 4,
+  'Operations Manager': 3,
+  'Support Agent': 2,
+  Viewer: 1,
+}
+
 export function isRole(value: string | null | undefined): value is Role {
   return (
     value === 'Admin' ||
@@ -112,12 +130,29 @@ export function isRole(value: string | null | undefined): value is Role {
   )
 }
 
-function resolveRole(userOrRole: PermissionUser | Role): Role {
-  return typeof userOrRole === 'string' ? userOrRole : userOrRole.role
+export function primaryRole(roles: readonly Role[]): Role {
+  if (roles.length === 0) return 'Viewer'
+  return [...roles].sort((a, b) => ROLE_RANK[b] - ROLE_RANK[a])[0]!
 }
 
 export function getPermissionsForRole(role: Role): readonly Permission[] {
   return rolePermissions[role]
+}
+
+export function getPermissionsForRoles(
+  roles: readonly Role[],
+): readonly Permission[] {
+  const set = new Set<Permission>()
+  for (const role of roles) {
+    for (const permission of rolePermissions[role]) {
+      set.add(permission)
+    }
+  }
+  return [...set]
+}
+
+function resolveRoles(userOrRole: PermissionUser | Role): readonly Role[] {
+  return typeof userOrRole === 'string' ? [userOrRole] : userOrRole.roles
 }
 
 /**
@@ -128,7 +163,7 @@ export function hasPermission(
   userOrRole: PermissionUser | Role,
   permission: Permission,
 ): boolean {
-  return getPermissionsForRole(resolveRole(userOrRole)).includes(permission)
+  return getPermissionsForRoles(resolveRoles(userOrRole)).includes(permission)
 }
 
 /**
@@ -155,4 +190,19 @@ export function canAll(
   return permissions.every((permission) =>
     hasPermission(userOrRole, permission),
   )
+}
+
+export function toPermissionUser(input: {
+  id: string
+  name: string
+  email: string
+  roles: Role[]
+}): PermissionUser {
+  return {
+    id: input.id,
+    name: input.name,
+    email: input.email,
+    roles: input.roles,
+    role: primaryRole(input.roles),
+  }
 }

@@ -30,6 +30,7 @@ export default tseslint.config(
           allowExportNames: [
             'useSession',
             'useAuth',
+            'useOptionalAuth',
             'usePermissions',
             'describedByIds',
           ],

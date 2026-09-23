@@ -106,6 +106,9 @@ describe('login screen', () => {
     expect(
       await screen.findByRole('heading', { name: 'Sign in' }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByText(/sign in as the admin operator/i),
+    ).toBeInTheDocument()
 
     await user.type(screen.getByLabelText('Username'), 'test')
     await user.type(screen.getByLabelText('Password'), 'test')

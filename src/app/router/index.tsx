@@ -64,6 +64,11 @@ const SettingsPage = lazy(() =>
     default: m.SettingsPage,
   })),
 )
+const UsersPage = lazy(() =>
+  import('@/features/users/users-page').then((m) => ({
+    default: m.UsersPage,
+  })),
+)
 const LoginPage = lazy(() =>
   import('@/features/auth/login-page').then((m) => ({
     default: m.LoginPage,
@@ -234,6 +239,16 @@ const settingsRoute = createRoute({
   ),
 })
 
+const usersRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/users',
+  component: () => (
+    <LazyPage>
+      <UsersPage />
+    </LazyPage>
+  ),
+})
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   authenticatedRoute.addChildren([
@@ -245,6 +260,7 @@ const routeTree = rootRoute.addChildren([
     unitDetailRoute,
     ticketsRoute,
     ticketDetailRoute,
+    usersRoute,
     settingsRoute,
   ]),
 ])

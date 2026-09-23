@@ -23,6 +23,10 @@ export interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+export function useOptionalAuth() {
+  return useContext(AuthContext)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() =>
     readAuthSession(),

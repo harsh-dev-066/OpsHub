@@ -1,64 +1,111 @@
+import { useQuery } from '@tanstack/react-query'
 import {
   createContext,
-  useCallback,
   useContext,
   useMemo,
-  useState,
   type ReactNode,
 } from 'react'
+import { useOptionalAuth } from '@/features/auth/auth-context'
+import { MOCK_CREDENTIALS } from '@/features/auth/mock-auth'
+import { usersApi } from '@/lib/api'
 import {
   can as canPermission,
   hasPermission as hasPermissionCheck,
-  isRole,
+  toPermissionUser,
   type Permission,
   type PermissionUser,
 } from '@/lib/permissions'
+import { queryKeys } from '@/lib/query/keys'
 import type { Role } from '@/types/domain'
-
-const STORAGE_KEY = 'opshub.role'
 
 interface SessionContextValue {
   user: PermissionUser
   role: Role
-  setRole: (role: Role) => void
+  roles: Role[]
   can: (permission: Permission) => boolean
   hasPermission: (permission: Permission) => boolean
+  /** True only for the seeded admin operator (`test`). */
+  canManageUsers: boolean
+  isLoading: boolean
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null)
 
-function readStoredRole(): Role {
-  const stored = localStorage.getItem(STORAGE_KEY)
-  return isRole(stored) ? stored : 'Operations Manager'
-}
-
-function buildUser(role: Role): PermissionUser {
-  return {
-    id: 'user-alex',
+/** Optimistic profiles so UI permissions do not flash to Viewer before /api/users. */
+const KNOWN_USERS: Record<string, PermissionUser> = {
+  test: toPermissionUser({
+    id: 'user-001',
     name: 'Alex Morgan',
     email: 'alex.morgan@opshub.app',
-    role,
-  }
+    roles: ['Admin'],
+  }),
+  priya: toPermissionUser({
+    id: 'user-002',
+    name: 'Priya Shah',
+    email: 'priya.shah@opshub.app',
+    roles: ['Operations Manager'],
+  }),
+  chris: toPermissionUser({
+    id: 'user-003',
+    name: 'Chris Lee',
+    email: 'chris.lee@opshub.app',
+    roles: ['Support Agent'],
+  }),
+  sam: toPermissionUser({
+    id: 'user-004',
+    name: 'Sam Rivera',
+    email: 'sam.rivera@opshub.app',
+    roles: ['Viewer'],
+  }),
 }
 
-export function SessionProvider({ children }: { children: ReactNode }) {
-  const [role, setRoleState] = useState<Role>(() => readStoredRole())
+const FALLBACK_USER = toPermissionUser({
+  id: 'user-fallback',
+  name: 'Console User',
+  email: 'user@opshub.app',
+  roles: ['Viewer'],
+})
 
-  const setRole = useCallback((next: Role) => {
-    localStorage.setItem(STORAGE_KEY, next)
-    setRoleState(next)
-  }, [])
+export function SessionProvider({ children }: { children: ReactNode }) {
+  const auth = useOptionalAuth()
+  const session = auth?.session ?? null
+  const usersQuery = useQuery({
+    queryKey: queryKeys.users.list(),
+    queryFn: usersApi.list,
+    enabled: Boolean(session),
+    staleTime: 30_000,
+  })
 
   const value = useMemo<SessionContextValue>(() => {
-    const user = buildUser(role)
+    const username = session?.username
+    const matched = usersQuery.data?.find(
+      (entry) => entry.username === username,
+    )
+    const user = matched
+      ? toPermissionUser({
+          id: matched.id,
+          name: matched.name,
+          email: matched.email,
+          roles: matched.roles,
+        })
+      : username && KNOWN_USERS[username]
+        ? KNOWN_USERS[username]
+        : FALLBACK_USER
+
+    const canManageUsers =
+      username === MOCK_CREDENTIALS.username &&
+      canPermission(user, 'users:write')
+
     return {
       user,
-      role,
-      setRole,
+      role: user.role,
+      roles: user.roles,
       can: (permission) => canPermission(user, permission),
       hasPermission: (permission) => hasPermissionCheck(user, permission),
+      canManageUsers,
+      isLoading: Boolean(session) && usersQuery.isLoading,
     }
-  }, [role, setRole])
+  }, [session, usersQuery.data, usersQuery.isLoading])
 
   return (
     <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

@@ -1,5 +1,4 @@
 import { screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { getVisibleNavItems } from '@/components/navigation/nav-items'
 import { can, hasPermission } from '@/lib/permissions'
@@ -15,6 +14,7 @@ describe('permission-based UI rendering', () => {
       '/properties',
       '/units',
       '/tickets',
+      '/users',
       '/settings',
     ])
 
@@ -23,11 +23,11 @@ describe('permission-based UI rendering', () => {
     )
     expect(withoutTickets.map((item) => item.label)).not.toContain('Tickets')
     expect(withoutTickets.map((item) => item.label)).toContain('Properties')
+    expect(withoutTickets.map((item) => item.label)).toContain('Users')
   })
 
   it('hides ticket create for Viewer', async () => {
-    localStorage.setItem('opshub.role', 'Viewer')
-    renderApp('/tickets')
+    renderApp('/tickets', 'sam')
 
     expect(
       await screen.findByRole('heading', { name: 'Tickets' }),
@@ -41,8 +41,7 @@ describe('permission-based UI rendering', () => {
   })
 
   it('shows ticket create for Operations Manager', async () => {
-    localStorage.setItem('opshub.role', 'Operations Manager')
-    renderApp('/tickets')
+    renderApp('/tickets', 'priya')
 
     expect(
       await screen.findByRole('button', { name: 'Create ticket' }),
@@ -50,8 +49,7 @@ describe('permission-based UI rendering', () => {
   })
 
   it('hides ticket edit and status controls for Viewer', async () => {
-    localStorage.setItem('opshub.role', 'Viewer')
-    renderApp('/tickets/tkt-001')
+    renderApp('/tickets/tkt-001', 'sam')
 
     expect(
       await screen.findByRole('heading', { name: /AC not cooling|Ticket/i }),
@@ -70,24 +68,31 @@ describe('permission-based UI rendering', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('updates effective permissions when the role changes', async () => {
-    localStorage.setItem('opshub.role', 'Viewer')
-    const user = userEvent.setup()
-    renderApp('/settings')
+  it('shows add user for admin operator and hides it for viewers', async () => {
+    const viewerView = renderApp('/users', 'sam')
+
+    expect(
+      await screen.findByRole('heading', { name: 'User Management' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Add user' }),
+    ).not.toBeInTheDocument()
+    viewerView.unmount()
+
+    renderApp('/users', 'test')
+
+    expect(
+      await screen.findByRole('button', { name: 'Add user' }),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps settings role read-only', async () => {
+    renderApp('/settings', 'test')
 
     expect(
       await screen.findByRole('heading', { name: 'Settings' }),
     ).toBeInTheDocument()
-    expect(screen.queryByText('tickets:create')).not.toBeInTheDocument()
-
-    await user.click(screen.getByLabelText('Select role'))
-    await user.click(
-      await screen.findByRole('option', { name: 'Operations Manager' }),
-    )
-
-    await waitFor(() => {
-      expect(screen.getByText('tickets:create')).toBeInTheDocument()
-      expect(screen.getByText('properties:write')).toBeInTheDocument()
-    })
+    expect(screen.queryByLabelText('Select role')).not.toBeInTheDocument()
+    expect(screen.getByText(/cannot be changed here/i)).toBeInTheDocument()
   })
 })

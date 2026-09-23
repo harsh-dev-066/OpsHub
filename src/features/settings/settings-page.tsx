@@ -1,33 +1,21 @@
 import { PageHeader, SectionCard } from '@/components/navigation/page-header'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useAuth } from '@/features/auth/auth-context'
-import { usePermissions } from '@/features/auth/permissions'
 import { useSession } from '@/features/settings/session-context'
 import {
-  getPermissionsForRole,
+  getPermissionsForRoles,
   ROLE_DESCRIPTIONS,
-  ROLE_OPTIONS,
 } from '@/lib/permissions'
-import type { Role } from '@/types/domain'
 
 export function SettingsPage() {
-  const { role, setRole, user } = useSession()
+  const { user, roles } = useSession()
   const { session } = useAuth()
-  const { can } = usePermissions()
-  const activePermissions = getPermissionsForRole(role)
+  const activePermissions = getPermissionsForRoles(roles)
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Settings"
-        description="Manage your profile and console role."
+        description="View your profile and effective console permissions."
       />
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -48,38 +36,21 @@ export function SettingsPage() {
               </dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Current role</dt>
-              <dd className="mt-1 font-medium">{user.role}</dd>
+              <dt className="text-muted-foreground">Roles</dt>
+              <dd className="mt-1 font-medium">{roles.join(', ')}</dd>
             </div>
           </dl>
         </SectionCard>
 
         <SectionCard title="Role">
           <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="role">Active role</Label>
-              <Select
-                value={role}
-                onValueChange={(value) => setRole(value as Role)}
-                disabled={!can('settings:write')}
-              >
-                <SelectTrigger id="role" aria-label="Select role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <p className="text-sm font-medium">{user.role}</p>
             <p className="text-xs text-muted-foreground">
-              {ROLE_DESCRIPTIONS[role]}
+              {ROLE_DESCRIPTIONS[user.role]}
             </p>
             <p className="text-xs text-muted-foreground">
-              Changing role updates which actions appear in the console.
+              Your roles are assigned by an administrator in User Management and
+              cannot be changed here.
             </p>
           </div>
         </SectionCard>
@@ -87,7 +58,7 @@ export function SettingsPage() {
 
       <SectionCard
         title="Effective permissions"
-        description="Capabilities for the active role."
+        description="Capabilities granted by your assigned roles."
       >
         <ul className="grid gap-2 sm:grid-cols-2">
           {activePermissions.map((permission) => (

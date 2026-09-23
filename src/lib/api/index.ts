@@ -8,6 +8,7 @@ import type {
   PaginatedResponse,
   Property,
   Resident,
+  Role,
   Ticket,
   TicketBreakdownItem,
   Unit,
@@ -100,4 +101,29 @@ export const ticketsApi = {
 
 export const usersApi = {
   list: () => apiClient<User[]>('/api/users'),
+  getById: (id: string) => apiClient<User>(`/api/users/${id}`),
+  create: (payload: {
+    name: string
+    email: string
+    username: string
+    roles: Role[]
+    status?: 'active' | 'inactive'
+  }) =>
+    apiClient<User>('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  update: (
+    id: string,
+    payload: Partial<{
+      name: string
+      email: string
+      roles: Role[]
+      status: 'active' | 'inactive'
+    }>,
+  ) =>
+    apiClient<User>(`/api/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
 }

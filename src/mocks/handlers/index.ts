@@ -1,9 +1,11 @@
 import { http, HttpResponse, type JsonBodyType } from 'msw'
 import type {
+  Role,
   Ticket,
   TicketCategory,
   TicketPriority,
   TicketStatus,
+  User,
 } from '@/types/domain'
 import { db, getOccupancyTrend } from '@/mocks/data'
 import {
@@ -22,6 +24,15 @@ function json(data: JsonBodyType, status = 200) {
 
 function forcedErrorResponse() {
   return json({ message: 'Forced mock failure for development/testing.' }, 500)
+}
+
+function parseAssignableRoles(roles: string[] | undefined): Role[] {
+  return (roles ?? []).filter(
+    (role): role is Role =>
+      role === 'Operations Manager' ||
+      role === 'Support Agent' ||
+      role === 'Viewer',
+  )
 }
 
 async function withMockBehavior(request: Request) {
@@ -402,6 +413,116 @@ export const handlers = [
     const forced = await withMockBehavior(request)
     if (forced) return forced
     return json(db.users)
+  }),
+
+  http.get('/api/users/:userId', async ({ params, request }) => {
+    const forced = await withMockBehavior(request)
+    if (forced) return forced
+    const user = db.users.find((entry) => entry.id === params.userId)
+    if (!user) return json({ message: 'User not found.' }, 404)
+    return json(user)
+  }),
+
+  http.post('/api/users', async ({ request }) => {
+    await delay()
+    if (shouldForceError(request) || shouldFailMutation(request)) {
+      return forcedErrorResponse()
+    }
+
+    const body = (await request.json()) as {
+      name?: string
+      email?: string
+      username?: string
+      roles?: string[]
+      status?: 'active' | 'inactive'
+    }
+
+    const name = body.name?.trim() ?? ''
+    const email = body.email?.trim() ?? ''
+    const username = body.username?.trim().toLowerCase() ?? ''
+    const roles = parseAssignableRoles(body.roles)
+
+    if (!name || !email || !username) {
+      return json({ message: 'Name, email, and username are required.' }, 400)
+    }
+    if (roles.length === 0) {
+      return json({ message: 'Assign at least one role.' }, 400)
+    }
+    if (db.users.some((entry) => entry.username === username)) {
+      return json({ message: 'Username is already taken.' }, 409)
+    }
+    if (
+      db.users.some(
+        (entry) => entry.email.toLowerCase() === email.toLowerCase(),
+      )
+    ) {
+      return json({ message: 'Email is already in use.' }, 409)
+    }
+
+    const user: User = {
+      id: `user-${Date.now()}`,
+      name,
+      email,
+      username,
+      roles,
+      status: body.status ?? 'active',
+      createdAt: new Date().toISOString(),
+    }
+    db.users.push(user)
+    return json(user, 201)
+  }),
+
+  http.patch('/api/users/:userId', async ({ params, request }) => {
+    await delay()
+    if (shouldForceError(request) || shouldFailMutation(request)) {
+      return forcedErrorResponse()
+    }
+
+    const index = db.users.findIndex((entry) => entry.id === params.userId)
+    if (index === -1) return json({ message: 'User not found.' }, 404)
+
+    const existing = db.users[index]!
+    if (existing.roles.includes('Admin')) {
+      return json(
+        { message: 'The system admin account cannot be modified.' },
+        403,
+      )
+    }
+
+    const body = (await request.json()) as {
+      name?: string
+      email?: string
+      roles?: string[]
+      status?: 'active' | 'inactive'
+    }
+
+    const nextRoles =
+      body.roles == null ? existing.roles : parseAssignableRoles(body.roles)
+
+    if (nextRoles.length === 0) {
+      return json({ message: 'Assign at least one role.' }, 400)
+    }
+
+    const email = body.email?.trim() ?? existing.email
+    if (
+      db.users.some(
+        (entry) =>
+          entry.id !== existing.id &&
+          entry.email.toLowerCase() === email.toLowerCase(),
+      )
+    ) {
+      return json({ message: 'Email is already in use.' }, 409)
+    }
+
+    const updated: User = {
+      ...existing,
+      name: body.name?.trim() ?? existing.name,
+      email,
+      roles: nextRoles,
+      status: body.status ?? existing.status,
+    }
+    db.users[index] = updated
+    return json(updated)
   }),
 
   http.get('/api/meta/cities', async ({ request }) => {

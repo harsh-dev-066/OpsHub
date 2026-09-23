@@ -80,8 +80,11 @@ export interface Ticket {
 export interface User {
   id: string
   name: string
-  role: Role
   email: string
+  username: string
+  roles: Role[]
+  status: 'active' | 'inactive'
+  createdAt: string
 }
 
 export interface DashboardSummary {

@@ -24,6 +24,7 @@ import { SettingsPage } from '@/features/settings/settings-page'
 import { SessionProvider } from '@/features/settings/session-context'
 import { UnitsPage } from '@/features/units/units-page'
 import { UnitDetailPage } from '@/features/units/unit-detail-page'
+import { UsersPage } from '@/features/users/users-page'
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -42,8 +43,8 @@ export function seedAuthenticatedSession(username = 'test') {
   })
 }
 
-export function renderApp(route = '/dashboard') {
-  seedAuthenticatedSession()
+export function renderApp(route = '/dashboard', username = 'test') {
+  seedAuthenticatedSession(username)
   const queryClient = createTestQueryClient()
 
   const rootRoute = createRootRoute({
@@ -103,6 +104,11 @@ export function renderApp(route = '/dashboard') {
     path: '/settings',
     component: SettingsPage,
   })
+  const usersRoute = createRoute({
+    getParentRoute: () => authenticatedRoute,
+    path: '/users',
+    component: UsersPage,
+  })
 
   const router = createRouter({
     routeTree: rootRoute.addChildren([
@@ -114,6 +120,7 @@ export function renderApp(route = '/dashboard') {
         unitDetailRoute,
         ticketsRoute,
         ticketDetailRoute,
+        usersRoute,
         settingsRoute,
       ]),
     ]),

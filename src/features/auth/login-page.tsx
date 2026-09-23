@@ -66,6 +66,11 @@ export function LoginPage() {
           <p className="text-sm text-muted-foreground">
             Enter your credentials to access the property operations console.
           </p>
+          <p className="rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            Use username <span className="font-mono font-medium text-foreground">test</span> and
+            password <span className="font-mono font-medium text-foreground">test</span> to
+            sign in as the admin operator.
+          </p>
         </div>
 
         <div className="rounded-xl border bg-card p-6 shadow-md">

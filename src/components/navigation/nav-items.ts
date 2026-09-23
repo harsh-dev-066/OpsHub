@@ -4,12 +4,19 @@ import {
   DoorOpen,
   LayoutDashboard,
   Settings,
+  Users,
   type LucideIcon,
 } from 'lucide-react'
 import type { Permission } from '@/lib/permissions'
 
 export type AppNavItem = {
-  to: '/dashboard' | '/properties' | '/units' | '/tickets' | '/settings'
+  to:
+    | '/dashboard'
+    | '/properties'
+    | '/units'
+    | '/tickets'
+    | '/users'
+    | '/settings'
   label: string
   icon: LucideIcon
   permission: Permission
@@ -43,6 +50,12 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: 'Tickets',
     icon: ClipboardList,
     permission: 'tickets:read',
+  },
+  {
+    to: '/users',
+    label: 'Users',
+    icon: Users,
+    permission: 'users:read',
   },
   {
     to: '/settings',
