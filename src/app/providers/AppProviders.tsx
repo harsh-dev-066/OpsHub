@@ -37,7 +37,8 @@ export function AppProviders() {
               },
             }}
           />
-          {import.meta.env.DEV ? (
+          {import.meta.env.DEV &&
+          import.meta.env.VITE_ENABLE_QUERY_DEVTOOLS !== 'false' ? (
             <ReactQueryDevtools initialIsOpen={false} />
           ) : null}
         </SessionProvider>

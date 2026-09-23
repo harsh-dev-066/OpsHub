@@ -19,11 +19,11 @@ export function DashboardPage() {
 
       <DashboardKpis />
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <OccupancyTrendSection />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <OccupancyTrendSection className="lg:col-span-2" />
         <TicketsByPrioritySection />
         <TicketsByStatusSection />
-        <RecentActivitySection />
+        <RecentActivitySection className="lg:col-span-2" />
       </div>
     </div>
   )

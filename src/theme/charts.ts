@@ -5,50 +5,32 @@
 
 export const chartColors = {
   primary: 'var(--chart-1)',
-  secondary: 'var(--chart-2)',
-  success: 'var(--chart-3)',
-  warning: 'var(--chart-4)',
-  danger: 'var(--chart-5)',
-  muted: 'var(--chart-muted)',
   grid: 'var(--chart-grid)',
   axis: 'var(--chart-axis)',
+  cursor: 'var(--chart-cursor)',
+  surface: 'var(--chart-surface)',
 } as const
 
-/** Ordered palette for generic multi-series / per-bar charts. */
-export const chartPalette = [
-  chartColors.primary,
-  chartColors.secondary,
-  chartColors.success,
-  chartColors.warning,
-  chartColors.danger,
-  chartColors.muted,
+/** Shared axis tick style: small, muted, never the series color. */
+export const chartTick = { fill: chartColors.axis, fontSize: 12 }
+
+/** Single-hue ramp (light -> dark) for ordinal magnitude. */
+export const chartSequential = [
+  'var(--chart-seq-1)',
+  'var(--chart-seq-2)',
+  'var(--chart-seq-3)',
+  'var(--chart-seq-4)',
 ] as const
 
-const priorityBarColors: Record<string, string> = {
-  low: chartColors.muted,
-  medium: chartColors.secondary,
-  high: chartColors.warning,
-  critical: chartColors.danger,
-}
-
-const statusBarColors: Record<string, string> = {
-  open: chartColors.secondary,
-  'in progress': chartColors.warning,
-  in_progress: chartColors.warning,
-  waiting: chartColors.muted,
-  resolved: chartColors.success,
-  closed: chartColors.primary,
-}
+const priorityOrder = ['low', 'medium', 'high', 'critical']
 
 /**
  * Resolves a fill color for a breakdown bar by category name.
- * Falls back to the palette by index when the name is unknown.
+ * Priority is ordinal, so it maps onto the sequential ramp (critical = darkest).
+ * Everything else (e.g. status) is already identified by its axis label and
+ * uses the single brand hue to keep the dashboard calm.
  */
-export function getBreakdownBarColor(name: string, index: number): string {
-  const key = name.trim().toLowerCase()
-  return (
-    priorityBarColors[key] ??
-    statusBarColors[key] ??
-    chartPalette[index % chartPalette.length]!
-  )
+export function getBreakdownBarColor(name: string): string {
+  const rank = priorityOrder.indexOf(name.trim().toLowerCase())
+  return rank >= 0 ? chartSequential[rank]! : chartColors.primary
 }

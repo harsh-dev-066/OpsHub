@@ -55,7 +55,9 @@ describe('Properties page', () => {
 
     const table = screen.getByRole('table')
     expect(within(table).getByText('inactive')).toBeInTheDocument()
-    expect(within(table).getByRole('link', { name: 'View' })).toBeInTheDocument()
+    expect(
+      within(table).getByRole('link', { name: 'View' }),
+    ).toBeInTheDocument()
   })
 
   it('hydrates filters from URL search params', async () => {

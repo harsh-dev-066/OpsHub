@@ -2,11 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 
 type AppPath =
-  | '/dashboard'
-  | '/properties'
-  | '/units'
-  | '/tickets'
-  | '/settings'
+  '/dashboard' | '/properties' | '/units' | '/tickets' | '/settings'
 
 export function PageHeader({
   title,
@@ -31,11 +27,15 @@ export function PageHeader({
                   key={`${crumb.label}-${index}`}
                   className="flex items-center gap-1"
                 >
-                  {index > 0 ? <span aria-hidden>/</span> : null}
+                  {index > 0 ? (
+                    <span aria-hidden className="text-border">
+                      /
+                    </span>
+                  ) : null}
                   {crumb.to ? (
                     <Link
                       to={crumb.to}
-                      className="hover:text-foreground hover:underline"
+                      className="transition-colors hover:text-foreground"
                     >
                       {crumb.label}
                     </Link>
@@ -55,7 +55,9 @@ export function PageHeader({
       ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {title}
+          </h1>
           {description ? (
             <p className="max-w-2xl text-sm text-muted-foreground">
               {description}
@@ -84,11 +86,18 @@ export function SectionCard({
   action?: React.ReactNode
 }) {
   return (
-    <section className={cn('rounded-lg border bg-card', className)}>
+    <section
+      className={cn(
+        'flex min-w-0 flex-col rounded-xl border bg-card shadow-sm',
+        className,
+      )}
+    >
       {(title || action) && (
-        <div className="flex items-start justify-between gap-3 border-b px-4 py-3">
+        <div className="flex items-start justify-between gap-3 px-5 pt-5">
           <div className="min-w-0 space-y-0.5">
-            {title ? <h2 className="text-sm font-semibold">{title}</h2> : null}
+            {title ? (
+              <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
+            ) : null}
             {description ? (
               <p className="text-xs text-muted-foreground">{description}</p>
             ) : null}
@@ -96,7 +105,9 @@ export function SectionCard({
           {action}
         </div>
       )}
-      <div className="p-4">{children}</div>
+      <div className={cn('flex-1 p-5', (title || action) && 'pt-4')}>
+        {children}
+      </div>
     </section>
   )
 }

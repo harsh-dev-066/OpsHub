@@ -97,8 +97,7 @@ export const ROLE_OPTIONS: Role[] = [
 
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   Admin: 'Full console access for administration.',
-  'Operations Manager':
-    'Operational access to properties, units, and tickets.',
+  'Operations Manager': 'Operational access to properties, units, and tickets.',
   'Support Agent':
     'Ticket workflows plus read-only property and unit information.',
   Viewer: 'Read-only portfolio and ticket visibility.',

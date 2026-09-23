@@ -26,4 +26,9 @@ export interface DataTableProps<TData, TValue = unknown> {
   onPageChange?: (page: number) => void
   getRowId?: (originalRow: TData, index: number) => string
   tableContainerClassName?: string
+  /**
+   * Grow to fill the parent flex column and scroll rows internally with a
+   * sticky header. Parent must be a height-constrained flex column.
+   */
+  fillHeight?: boolean
 }

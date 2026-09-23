@@ -21,10 +21,7 @@ function json(data: JsonBodyType, status = 200) {
 }
 
 function forcedErrorResponse() {
-  return json(
-    { message: 'Forced mock failure for development/testing.' },
-    500,
-  )
+  return json({ message: 'Forced mock failure for development/testing.' }, 500)
 }
 
 async function withMockBehavior(request: Request) {
@@ -240,7 +237,11 @@ export const handlers = [
       )
     }
 
-    items = sortByField(items, params.sortBy ?? 'name', params.sortDirection ?? 'asc')
+    items = sortByField(
+      items,
+      params.sortBy ?? 'name',
+      params.sortDirection ?? 'asc',
+    )
     return json(paginate(items, params.page, params.pageSize))
   }),
 

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
+import { Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { QueryErrorState } from '@/components/feedback/states'
@@ -10,13 +11,6 @@ import {
 import { PageHeader, SectionCard } from '@/components/navigation/page-header'
 import { Button } from '@/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -26,6 +20,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Can } from '@/features/auth/permissions'
 import { TicketForm } from '@/features/tickets/ticket-form'
+import { TicketFormDialog } from '@/features/tickets/ticket-form-dialog'
 import {
   ticketStatuses,
   type TicketFormValues,
@@ -140,9 +135,7 @@ export function TicketDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={
-          ticket?.title ?? (isNotFound ? 'Ticket not found' : 'Ticket')
-        }
+        title={ticket?.title ?? (isNotFound ? 'Ticket not found' : 'Ticket')}
         description={
           ticket
             ? `${formatLabel(ticket.category)} · ${formatLabel(ticket.status)}`
@@ -301,33 +294,31 @@ export function TicketDetailPage() {
         </div>
       )}
 
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit ticket</DialogTitle>
-            <DialogDescription>
-              Update ticket fields and save changes.
-            </DialogDescription>
-          </DialogHeader>
-          {ticket ? (
-            <TicketForm
-              submitLabel="Save changes"
-              defaultValues={{
-                title: ticket.title,
-                description: ticket.description,
-                category: ticket.category,
-                priority: ticket.priority,
-                propertyId: ticket.propertyId,
-                unitId: ticket.unitId,
-                assignee: ticket.assignee,
-              }}
-              onSubmit={handleEdit}
-              onCancel={() => setEditOpen(false)}
-              isSubmitting={updateMutation.isPending}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <TicketFormDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        icon={Pencil}
+        title="Edit ticket"
+        description="Update ticket fields and save changes."
+      >
+        {ticket ? (
+          <TicketForm
+            submitLabel="Save changes"
+            defaultValues={{
+              title: ticket.title,
+              description: ticket.description,
+              category: ticket.category,
+              priority: ticket.priority,
+              propertyId: ticket.propertyId,
+              unitId: ticket.unitId,
+              assignee: ticket.assignee,
+            }}
+            onSubmit={handleEdit}
+            onCancel={() => setEditOpen(false)}
+            isSubmitting={updateMutation.isPending}
+          />
+        ) : null}
+      </TicketFormDialog>
     </div>
   )
 }

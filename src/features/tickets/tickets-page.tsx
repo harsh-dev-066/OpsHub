@@ -1,22 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import { type SortingState } from '@tanstack/react-table'
+import { ClipboardPlus, Plus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { DataTable } from '@/components/data-table/data-table'
 import { ActiveFilterChip } from '@/components/feedback/active-filter-chip'
 import { PageHeader } from '@/components/navigation/page-header'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Can } from '@/features/auth/permissions'
 import { createTicketColumns } from '@/features/tickets/ticket-columns'
 import { TicketForm } from '@/features/tickets/ticket-form'
+import { TicketFormDialog } from '@/features/tickets/ticket-form-dialog'
 import {
   toTicketsListParams,
   type TicketFormValues,
@@ -25,6 +20,7 @@ import {
 import { TicketsFilters } from '@/features/tickets/tickets-filters'
 import { propertiesApi, ticketsApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
+import { viewportPageClassName } from '@/lib/utils'
 
 const ticketsRoute = getRouteApi('/authenticated/tickets')
 
@@ -118,13 +114,14 @@ export function TicketsPage() {
   }
 
   return (
-    <div>
+    <div className={viewportPageClassName}>
       <PageHeader
         title="Tickets"
         description="Track and resolve operational support requests. Filters sync to the URL."
         actions={
           <Can permission="tickets:create">
             <Button type="button" onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4" aria-hidden />
               Create ticket
             </Button>
           </Can>
@@ -172,6 +169,7 @@ export function TicketsPage() {
       />
 
       <DataTable
+        fillHeight
         columns={columns}
         data={ticketsQuery.data?.data ?? []}
         getRowId={(row) => row.id}
@@ -200,21 +198,19 @@ export function TicketsPage() {
         onPageChange={(page) => updateSearch({ page })}
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create ticket</DialogTitle>
-            <DialogDescription>
-              Capture the issue details so operations can follow up.
-            </DialogDescription>
-          </DialogHeader>
-          <TicketForm
-            onSubmit={handleCreate}
-            onCancel={() => setOpen(false)}
-            isSubmitting={createMutation.isPending}
-          />
-        </DialogContent>
-      </Dialog>
+      <TicketFormDialog
+        open={open}
+        onOpenChange={setOpen}
+        icon={ClipboardPlus}
+        title="Create ticket"
+        description="Capture the issue details so operations can follow up."
+      >
+        <TicketForm
+          onSubmit={handleCreate}
+          onCancel={() => setOpen(false)}
+          isSubmitting={createMutation.isPending}
+        />
+      </TicketFormDialog>
     </div>
   )
 }

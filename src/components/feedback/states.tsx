@@ -16,11 +16,13 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/20 px-6 py-12 text-center',
+        'flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-muted/30 px-6 py-12 text-center',
         className,
       )}
     >
-      <Inbox className="h-8 w-8 text-muted-foreground" aria-hidden />
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+        <Inbox className="h-5 w-5 text-muted-foreground" aria-hidden />
+      </span>
       <div className="space-y-1">
         <p className="text-sm font-semibold">{title}</p>
         {description ? (
@@ -51,11 +53,13 @@ export function QueryErrorState({
     <div
       role="alert"
       className={cn(
-        'flex flex-col items-center justify-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-6 py-12 text-center',
+        'flex flex-col items-center justify-center gap-3 rounded-xl border border-destructive/20 bg-danger/50 px-6 py-12 text-center',
         className,
       )}
     >
-      <AlertCircle className="h-8 w-8 text-destructive" aria-hidden />
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-danger">
+        <AlertCircle className="h-5 w-5 text-destructive" aria-hidden />
+      </span>
       <div className="space-y-1">
         <p className="text-sm font-semibold">{title}</p>
         <p className="max-w-sm text-sm text-muted-foreground">{description}</p>

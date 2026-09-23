@@ -1,12 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
-import { toast } from 'sonner'
 import { QueryErrorState } from '@/components/feedback/states'
 import { PageHeader } from '@/components/navigation/page-header'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Can } from '@/features/auth/permissions'
 import {
   PropertyActivityPanel,
   PropertySummary,
@@ -46,7 +44,9 @@ export function PropertyDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={property?.name ?? (isNotFound ? 'Property not found' : 'Property')}
+        title={
+          property?.name ?? (isNotFound ? 'Property not found' : 'Property')
+        }
         description={
           property
             ? `${property.address}, ${property.city}, ${property.country}`
@@ -56,24 +56,6 @@ export function PropertyDetailPage() {
           { label: 'Properties', to: '/properties' },
           { label: property?.name ?? 'Detail' },
         ]}
-        actions={
-          property ? (
-            <Can permission="properties:write">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  toast.message('Property editing is not available yet', {
-                    description:
-                      'Connect a write API to enable this action.',
-                  })
-                }
-              >
-                Edit property
-              </Button>
-            </Can>
-          ) : null
-        }
       />
 
       {propertyQuery.isError ? (

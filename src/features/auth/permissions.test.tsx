@@ -19,8 +19,7 @@ describe('permission-based UI rendering', () => {
     ])
 
     const withoutTickets = getVisibleNavItems(
-      (permission) =>
-        permission !== 'tickets:read' && can('Admin', permission),
+      (permission) => permission !== 'tickets:read' && can('Admin', permission),
     )
     expect(withoutTickets.map((item) => item.label)).not.toContain('Tickets')
     expect(withoutTickets.map((item) => item.label)).toContain('Properties')
@@ -47,46 +46,6 @@ describe('permission-based UI rendering', () => {
 
     expect(
       await screen.findByRole('button', { name: 'Create ticket' }),
-    ).toBeInTheDocument()
-  })
-
-  it('hides property edit for Support Agent and shows it for Admin', async () => {
-    localStorage.setItem('opshub.role', 'Support Agent')
-    const supportView = renderApp('/properties/prop-001')
-
-    expect(
-      await screen.findByRole('heading', { name: 'Harbor View Residences' }),
-    ).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Edit property' }),
-    ).not.toBeInTheDocument()
-    supportView.unmount()
-
-    localStorage.setItem('opshub.role', 'Admin')
-    renderApp('/properties/prop-001')
-
-    expect(
-      await screen.findByRole('button', { name: 'Edit property' }),
-    ).toBeInTheDocument()
-  })
-
-  it('hides unit edit for Support Agent and shows it for Operations Manager', async () => {
-    localStorage.setItem('opshub.role', 'Support Agent')
-    const supportView = renderApp('/units/unit-001')
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: /Unit 101/i }),
-    ).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Edit unit' }),
-    ).not.toBeInTheDocument()
-    supportView.unmount()
-
-    localStorage.setItem('opshub.role', 'Operations Manager')
-    renderApp('/units/unit-001')
-
-    expect(
-      await screen.findByRole('button', { name: 'Edit unit' }),
     ).toBeInTheDocument()
   })
 

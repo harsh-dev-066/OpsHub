@@ -12,6 +12,7 @@ export function ChartSection({
   emptyDescription,
   onRetry,
   children,
+  className,
 }: {
   title: string
   description?: string
@@ -22,9 +23,10 @@ export function ChartSection({
   emptyDescription: string
   onRetry: () => void
   children: React.ReactNode
+  className?: string
 }) {
   return (
-    <SectionCard title={title} description={description}>
+    <SectionCard title={title} description={description} className={className}>
       {isError ? (
         <QueryErrorState
           title={`Unable to load ${title.toLowerCase()}`}

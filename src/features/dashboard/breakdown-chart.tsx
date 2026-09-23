@@ -8,66 +8,90 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { chartColors, getBreakdownBarColor } from '@/theme'
+import { ChartTooltip } from '@/features/dashboard/chart-tooltip'
+import { chartColors, chartTick, getBreakdownBarColor } from '@/theme'
 import type { TicketBreakdownItem } from '@/types/domain'
+
+const capitalize = (name: string) =>
+  name.charAt(0).toUpperCase() + name.slice(1)
 
 export function BreakdownChart({
   data,
   label,
   valueLabel = 'Tickets',
+  layout = 'vertical',
 }: {
   data: TicketBreakdownItem[]
   label: string
   valueLabel?: string
+  /** `horizontal` puts categories on the Y axis — better for long labels. */
+  layout?: 'vertical' | 'horizontal'
 }) {
   const summary = data.map((item) => `${item.name}: ${item.value}`).join('; ')
+  const horizontal = layout === 'horizontal'
+
+  const categoryAxis = {
+    dataKey: 'name',
+    type: 'category' as const,
+    tickLine: false,
+    axisLine: false,
+    tick: chartTick,
+    tickFormatter: capitalize,
+    interval: 0,
+  }
+  const valueAxis = {
+    type: 'number' as const,
+    allowDecimals: false,
+    tickLine: false,
+    axisLine: false,
+    tick: chartTick,
+  }
 
   return (
-    <figure className="space-y-2" aria-label={label}>
+    <figure aria-label={label}>
       <figcaption className="sr-only">
         {label}. {summary ? `Values: ${summary}.` : ''}
       </figcaption>
       <div className="h-64 w-full" role="img" aria-hidden>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <BarChart
+            data={data}
+            // Recharts' "vertical" layout means bars run horizontally.
+            layout={horizontal ? 'vertical' : 'horizontal'}
+            margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+            barCategoryGap={horizontal ? '32%' : '28%'}
+          >
             <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
+              horizontal={!horizontal}
+              vertical={horizontal}
               stroke={chartColors.grid}
             />
-            <XAxis
-              dataKey="name"
-              tickLine={false}
-              axisLine={false}
-              stroke={chartColors.axis}
-            />
-            <YAxis
-              allowDecimals={false}
-              tickLine={false}
-              axisLine={false}
-              width={32}
-              stroke={chartColors.axis}
-              label={{
-                value: valueLabel,
-                angle: -90,
-                position: 'insideLeft',
-                offset: 8,
-              }}
-            />
+            {horizontal ? (
+              <>
+                <XAxis {...valueAxis} tickMargin={8} />
+                <YAxis {...categoryAxis} width={84} tickMargin={8} />
+              </>
+            ) : (
+              <>
+                <XAxis {...categoryAxis} tickMargin={8} />
+                <YAxis {...valueAxis} width={32} />
+              </>
+            )}
             <Tooltip
-              formatter={(value) => [Number(value), valueLabel]}
-              labelFormatter={(name) => String(name).replaceAll('_', ' ')}
+              cursor={{ fill: chartColors.cursor, radius: 6 }}
+              content={<ChartTooltip valueLabel={valueLabel} />}
             />
             <Bar
               dataKey="value"
-              radius={[4, 4, 0, 0]}
+              radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
+              maxBarSize={horizontal ? 24 : 44}
               name={valueLabel}
               isAnimationActive={false}
             >
               {data.map((item, index) => (
                 <Cell
                   key={`${item.name}-${index}`}
-                  fill={getBreakdownBarColor(item.name, index)}
+                  fill={getBreakdownBarColor(item.name)}
                 />
               ))}
             </Bar>

@@ -1,1 +1,6 @@
-export { chartColors, chartPalette, getBreakdownBarColor } from './charts'
+export {
+  chartColors,
+  chartSequential,
+  chartTick,
+  getBreakdownBarColor,
+} from './charts'

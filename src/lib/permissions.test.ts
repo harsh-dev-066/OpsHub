@@ -43,15 +43,15 @@ describe('permission model', () => {
   })
 
   it('supports canAny and canAll helpers', () => {
-    expect(
-      canAny(supportUser, ['properties:write', 'tickets:create']),
-    ).toBe(true)
-    expect(
-      canAll(supportUser, ['properties:read', 'tickets:create']),
-    ).toBe(true)
-    expect(
-      canAll(supportUser, ['properties:write', 'tickets:create']),
-    ).toBe(false)
+    expect(canAny(supportUser, ['properties:write', 'tickets:create'])).toBe(
+      true,
+    )
+    expect(canAll(supportUser, ['properties:read', 'tickets:create'])).toBe(
+      true,
+    )
+    expect(canAll(supportUser, ['properties:write', 'tickets:create'])).toBe(
+      false,
+    )
   })
 
   it('lists permissions for each role without hardcoding checks in callers', () => {

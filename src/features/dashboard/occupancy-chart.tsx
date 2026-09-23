@@ -1,14 +1,17 @@
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
-import { chartColors } from '@/theme'
+import { ChartTooltip } from '@/features/dashboard/chart-tooltip'
+import { chartColors, chartTick } from '@/theme'
 import type { OccupancyPoint } from '@/types/domain'
+
+const GRADIENT_ID = 'occupancy-area-fill'
 
 export function OccupancyChart({ data }: { data: OccupancyPoint[] }) {
   const summary = data
@@ -16,56 +19,75 @@ export function OccupancyChart({ data }: { data: OccupancyPoint[] }) {
     .join('; ')
 
   return (
-    <figure className="space-y-2" aria-labelledby="occupancy-chart-title">
+    <figure aria-labelledby="occupancy-chart-title">
       <figcaption id="occupancy-chart-title" className="sr-only">
         Line chart of portfolio occupancy rate by month for the last 12 months.
         {summary ? ` Values: ${summary}.` : ''}
       </figcaption>
       <div className="h-64 w-full" role="img" aria-hidden>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke={chartColors.grid}
-            />
+          <AreaChart
+            data={data}
+            margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id={GRADIENT_ID} x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor={chartColors.primary}
+                  stopOpacity={0.18}
+                />
+                <stop
+                  offset="100%"
+                  stopColor={chartColors.primary}
+                  stopOpacity={0}
+                />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} stroke={chartColors.grid} />
             <XAxis
               dataKey="month"
               tickLine={false}
               axisLine={false}
-              stroke={chartColors.axis}
-              label={{ value: 'Month', position: 'insideBottom', offset: -2 }}
+              tick={chartTick}
+              tickMargin={8}
+              interval="preserveStartEnd"
             />
             <YAxis
               domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
               tickLine={false}
               axisLine={false}
-              width={36}
-              unit="%"
-              stroke={chartColors.axis}
-              label={{
-                value: 'Occupancy %',
-                angle: -90,
-                position: 'insideLeft',
-                offset: 10,
-              }}
+              width={44}
+              tick={chartTick}
+              tickFormatter={(value: number) => `${value}%`}
             />
             <Tooltip
-              formatter={(value) => [
-                `${Math.round(Number(value))}%`,
-                'Occupancy',
-              ]}
+              cursor={{ stroke: chartColors.grid, strokeWidth: 1 }}
+              content={
+                <ChartTooltip
+                  valueLabel="Occupancy"
+                  formatValue={(value) => `${Math.round(value)}%`}
+                />
+              }
             />
-            <Line
+            <Area
               type="monotone"
               dataKey="occupancyRate"
               stroke={chartColors.primary}
               strokeWidth={2}
+              fill={`url(#${GRADIENT_ID})`}
               dot={false}
+              activeDot={{
+                r: 4,
+                strokeWidth: 2,
+                stroke: chartColors.surface,
+                fill: chartColors.primary,
+              }}
               name="Occupancy %"
               isAnimationActive={false}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </figure>

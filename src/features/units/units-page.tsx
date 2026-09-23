@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select'
 import { propertiesApi, unitsApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
-import { formatCurrency, formatLabel } from '@/lib/utils'
+import { formatCurrency, formatLabel, viewportPageClassName } from '@/lib/utils'
 import type { Unit } from '@/types/domain'
 
 const unitsRoute = getRouteApi('/authenticated/units')
@@ -130,7 +130,7 @@ export function UnitsPage() {
   )
 
   return (
-    <div className="space-y-0">
+    <div className={viewportPageClassName}>
       <PageHeader
         title="Units"
         description="Search and filter units across the portfolio."
@@ -174,6 +174,7 @@ export function UnitsPage() {
         </Select>
       </div>
       <DataTable
+        fillHeight
         columns={columns}
         data={unitsQuery.data?.data ?? []}
         getRowId={(row) => row.id}

@@ -12,7 +12,12 @@ import {
 import { SectionCard } from '@/components/navigation/page-header'
 import { propertiesApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
-import { formatDate, formatPercent, metricLabelClassName, metricValueClassName } from '@/lib/utils'
+import {
+  formatDate,
+  formatPercent,
+  metricLabelClassName,
+  metricValueClassName,
+} from '@/lib/utils'
 import type { Property, Ticket, Unit } from '@/types/domain'
 
 export function PropertySummary({ property }: { property: Property }) {

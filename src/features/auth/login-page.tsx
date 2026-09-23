@@ -11,10 +11,7 @@ import {
   type LoginFormValues,
 } from '@/features/auth/login-schema'
 import { MOCK_CREDENTIALS } from '@/features/auth/mock-auth'
-import {
-  describedByIds,
-  FormField,
-} from '@/features/tickets/form-field'
+import { describedByIds, FormField } from '@/features/tickets/form-field'
 
 const loginRoute = getRouteApi('/login')
 
@@ -71,7 +68,7 @@ export function LoginPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
+        <div className="rounded-xl border bg-card p-6 shadow-md">
           <form
             className="space-y-4"
             onSubmit={form.handleSubmit(onSubmit)}

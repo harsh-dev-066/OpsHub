@@ -1,1 +1,5 @@
-export { db, getOccupancyTrend, recalculatePropertyOccupancy } from '@/mocks/data/db'
+export {
+  db,
+  getOccupancyTrend,
+  recalculatePropertyOccupancy,
+} from '@/mocks/data/db'

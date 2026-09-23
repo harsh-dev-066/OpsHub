@@ -19,7 +19,9 @@ export function createPropertyColumns(): ColumnDef<Property>[] {
           >
             {row.original.name}
           </Link>
-          <p className="text-xs text-muted-foreground">{row.original.address}</p>
+          <p className="text-xs text-muted-foreground">
+            {row.original.address}
+          </p>
         </div>
       ),
     },
@@ -63,18 +65,12 @@ export function createPropertyColumns(): ColumnDef<Property>[] {
             </Link>
           </Button>
           <Button asChild variant="ghost" size="sm" className="h-8 px-2">
-            <Link
-              to="/units"
-              search={{ propertyId: row.original.id }}
-            >
+            <Link to="/units" search={{ propertyId: row.original.id }}>
               Units
             </Link>
           </Button>
           <Button asChild variant="ghost" size="sm" className="h-8 px-2">
-            <Link
-              to="/tickets"
-              search={{ propertyId: row.original.id }}
-            >
+            <Link to="/tickets" search={{ propertyId: row.original.id }}>
               Tickets
             </Link>
           </Button>

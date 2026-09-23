@@ -34,18 +34,18 @@ describe('Mock API layer', () => {
       pageSize: 20,
     })
     expect(result.data.length).toBeGreaterThan(0)
-    expect(result.data.every((property) => property.status === 'inactive')).toBe(
-      true,
-    )
+    expect(
+      result.data.every((property) => property.status === 'inactive'),
+    ).toBe(true)
 
     const singapore = await propertiesApi.list({
       city: 'Singapore',
       page: 1,
       pageSize: 20,
     })
-    expect(singapore.data.every((property) => property.city === 'Singapore')).toBe(
-      true,
-    )
+    expect(
+      singapore.data.every((property) => property.city === 'Singapore'),
+    ).toBe(true)
   })
 
   it('sorts properties by name descending', async () => {
@@ -72,7 +72,11 @@ describe('Mock API layer', () => {
   })
 
   it('returns unit detail with resident and contract when occupied', async () => {
-    const units = await unitsApi.list({ status: 'occupied', page: 1, pageSize: 1 })
+    const units = await unitsApi.list({
+      status: 'occupied',
+      page: 1,
+      pageSize: 1,
+    })
     const unitId = units.data[0]?.id
     expect(unitId).toBeTruthy()
 

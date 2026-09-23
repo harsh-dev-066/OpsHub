@@ -10,7 +10,11 @@ const BreakdownChart = lazy(() =>
   })),
 )
 
-export function TicketsByPrioritySection() {
+export function TicketsByPrioritySection({
+  className,
+}: {
+  className?: string
+}) {
   const priorityQuery = useQuery({
     queryKey: queryKeys.dashboard.ticketsByPriority(),
     queryFn: dashboardApi.getTicketsByPriority,
@@ -22,6 +26,7 @@ export function TicketsByPrioritySection() {
 
   return (
     <ChartSection
+      className={className}
       title="Tickets by priority"
       description="Current open and historical volume"
       isLoading={priorityQuery.isLoading}
@@ -41,7 +46,7 @@ export function TicketsByPrioritySection() {
   )
 }
 
-export function TicketsByStatusSection() {
+export function TicketsByStatusSection({ className }: { className?: string }) {
   const statusQuery = useQuery({
     queryKey: queryKeys.dashboard.ticketsByStatus(),
     queryFn: dashboardApi.getTicketsByStatus,
@@ -53,6 +58,7 @@ export function TicketsByStatusSection() {
 
   return (
     <ChartSection
+      className={className}
       title="Tickets by status"
       description="Workflow distribution across the portfolio"
       isLoading={statusQuery.isLoading}
@@ -69,6 +75,7 @@ export function TicketsByStatusSection() {
             name: item.name.replaceAll('_', ' '),
           }))}
           label="Bar chart of tickets grouped by status"
+          layout="horizontal"
         />
       </Suspense>
     </ChartSection>

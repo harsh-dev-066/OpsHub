@@ -49,9 +49,7 @@ const ticketPriorityVariant: Record<
 
 export function PropertyStatusBadge({ status }: { status: PropertyStatus }) {
   return (
-    <Badge variant={propertyStatusVariant[status]}>
-      {formatLabel(status)}
-    </Badge>
+    <Badge variant={propertyStatusVariant[status]}>{formatLabel(status)}</Badge>
   )
 }
 

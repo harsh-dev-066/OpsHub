@@ -1,10 +1,6 @@
 import type { ReactNode } from 'react'
 import { useSession } from '@/features/settings/session-context'
-import {
-  canAll,
-  canAny,
-  type Permission,
-} from '@/lib/permissions'
+import { canAll, canAny, type Permission } from '@/lib/permissions'
 
 export function usePermissions() {
   const { user, can, hasPermission } = useSession()

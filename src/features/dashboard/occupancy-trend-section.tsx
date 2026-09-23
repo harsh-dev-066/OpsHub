@@ -10,7 +10,7 @@ const OccupancyChart = lazy(() =>
   })),
 )
 
-export function OccupancyTrendSection() {
+export function OccupancyTrendSection({ className }: { className?: string }) {
   const occupancyQuery = useQuery({
     queryKey: queryKeys.dashboard.occupancy(),
     queryFn: dashboardApi.getOccupancy,
@@ -20,6 +20,7 @@ export function OccupancyTrendSection() {
 
   return (
     <ChartSection
+      className={className}
       title="Occupancy trend"
       description="Last 12 months"
       isLoading={occupancyQuery.isLoading}

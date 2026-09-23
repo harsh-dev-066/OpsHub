@@ -38,6 +38,7 @@ export function DataTable<TData, TValue>({
   onPageChange,
   getRowId,
   tableContainerClassName,
+  fillHeight = false,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -47,9 +48,7 @@ export function DataTable<TData, TValue>({
     manualSorting: true,
     manualPagination: true,
     getCoreRowModel: getCoreRowModel(),
-    getRowId: getRowId
-      ? (row, index) => getRowId(row, index)
-      : undefined,
+    getRowId: getRowId ? (row, index) => getRowId(row, index) : undefined,
     onSortingChange: (updater) => {
       const next = typeof updater === 'function' ? updater(sorting) : updater
       onSortingChange?.(next)
@@ -63,15 +62,27 @@ export function DataTable<TData, TValue>({
   const rows = table.getRowModel().rows
 
   return (
-    <div className="space-y-3">
+    <div
+      className={cn(
+        'space-y-3',
+        fillHeight &&
+          'flex flex-col md:min-h-0 md:flex-1 md:space-y-0 md:gap-3',
+      )}
+    >
       <div
         className={cn(
-          'overflow-hidden rounded-lg border bg-card',
+          'overflow-hidden rounded-xl border bg-card shadow-sm',
+          fillHeight && 'md:flex md:min-h-0 md:flex-initial md:flex-col',
           tableContainerClassName,
         )}
       >
-        <Table>
-          <TableHeader>
+        <Table containerClassName={cn(fillHeight && 'md:min-h-0 md:flex-1')}>
+          <TableHeader
+            className={cn(
+              fillHeight &&
+                'md:sticky md:top-0 md:z-10 md:bg-background md:shadow-[inset_0_-1px_0_hsl(var(--border))] md:[&_tr]:border-b-0',
+            )}
+          >
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
@@ -99,7 +110,7 @@ export function DataTable<TData, TValue>({
                         <Button
                           type="button"
                           variant="ghost"
-                          className="-ml-3 h-8 px-2"
+                          className="-ml-2 h-8 px-2 text-xs font-medium uppercase tracking-wider text-muted-foreground"
                           onClick={header.column.getToggleSortingHandler()}
                           aria-label={`Sort by ${label}`}
                         >
@@ -177,9 +188,9 @@ export function DataTable<TData, TValue>({
       {onPageChange ? (
         <nav
           aria-label="Table pagination"
-          className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+          className="flex shrink-0 flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
         >
-          <p>
+          <p className="tabular-nums">
             {total === 0
               ? '0 results'
               : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} of ${total}`}

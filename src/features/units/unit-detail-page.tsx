@@ -1,12 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
-import { toast } from 'sonner'
 import { QueryErrorState } from '@/components/feedback/states'
 import { UnitStatusBadge } from '@/components/feedback/status-badges'
 import { PageHeader, SectionCard } from '@/components/navigation/page-header'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Can } from '@/features/auth/permissions'
 import { ApiError } from '@/lib/api/client'
 import { unitsApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
@@ -27,7 +25,13 @@ export function UnitDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={unit ? `Unit ${unit.unitNumber}` : isNotFound ? 'Unit not found' : 'Unit'}
+        title={
+          unit
+            ? `Unit ${unit.unitNumber}`
+            : isNotFound
+              ? 'Unit not found'
+              : 'Unit'
+        }
         description={
           unit?.property
             ? `${unit.property.name} · ${formatLabel(unit.type)}`
@@ -39,27 +43,11 @@ export function UnitDetailPage() {
         ]}
         actions={
           unit ? (
-            <div className="flex flex-wrap gap-2">
-              <Button asChild variant="outline">
-                <Link to="/tickets" search={{ propertyId: unit.propertyId }}>
-                  Related tickets
-                </Link>
-              </Button>
-              <Can permission="units:write">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    toast.message('Unit editing is not available yet', {
-                      description:
-                        'Connect a write API to enable this action.',
-                    })
-                  }
-                >
-                  Edit unit
-                </Button>
-              </Can>
-            </div>
+            <Button asChild variant="outline">
+              <Link to="/tickets" search={{ propertyId: unit.propertyId }}>
+                Related tickets
+              </Link>
+            </Button>
           ) : null
         }
       />
@@ -100,9 +88,7 @@ export function UnitDetailPage() {
               </div>
               <div>
                 <dt className="text-muted-foreground">Type</dt>
-                <dd className="mt-1 font-medium">
-                  {formatLabel(unit.type)}
-                </dd>
+                <dd className="mt-1 font-medium">{formatLabel(unit.type)}</dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">Monthly rate</dt>

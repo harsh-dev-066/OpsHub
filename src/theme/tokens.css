@@ -3,18 +3,21 @@
  */
 
 :root {
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 
-  --font-family-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-family-mono: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas,
-    monospace;
+  --font-family-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-family-mono:
+    ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
 
-  --elevation-sm: 0 1px 2px 0 rgb(15 23 42 / 0.05);
-  --elevation-md: 0 4px 12px -2px rgb(15 23 42 / 0.08);
-  --elevation-lg: 0 12px 24px -8px rgb(15 23 42 / 0.12);
+  --elevation-sm:
+    0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.03);
+  --elevation-md:
+    0 4px 12px -2px rgb(16 24 40 / 0.07), 0 2px 4px -2px rgb(16 24 40 / 0.04);
+  --elevation-lg: 0 16px 32px -12px rgb(16 24 40 / 0.14);
 
-  --sidebar-width: 16rem;
-  --header-height: 3.5rem;
+  --sidebar-width: 15.5rem;
+  --header-height: 4rem;
 
   --transition-fast: 150ms ease;
   --transition-base: 200ms ease;

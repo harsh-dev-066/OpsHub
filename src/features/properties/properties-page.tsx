@@ -12,6 +12,7 @@ import {
 } from '@/features/properties/properties-search'
 import { propertiesApi } from '@/lib/api'
 import { queryKeys } from '@/lib/query/keys'
+import { viewportPageClassName } from '@/lib/utils'
 
 const propertiesRoute = getRouteApi('/authenticated/properties')
 
@@ -67,7 +68,7 @@ export function PropertiesPage() {
   }
 
   return (
-    <div>
+    <div className={viewportPageClassName}>
       <PageHeader
         title="Properties"
         description="Browse and filter the property portfolio. Filters sync to the URL for sharing."
@@ -97,6 +98,7 @@ export function PropertiesPage() {
       />
 
       <DataTable
+        fillHeight
         columns={columns}
         data={propertiesQuery.data?.data ?? []}
         getRowId={(row) => row.id}
