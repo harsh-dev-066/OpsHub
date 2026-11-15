@@ -95,6 +95,9 @@ services:
         value: "false"
       - key: VITE_API_BASE_URL
         value: https://opshub-api-s9lm.onrender.com
+      # Public login-page hint; must match API DEMO_USER_PASSWORD.
+      - key: VITE_DEMO_PASSWORD
+        sync: false
       - key: VITE_ENABLE_QUERY_DEVTOOLS
         value: "false"
     routes:

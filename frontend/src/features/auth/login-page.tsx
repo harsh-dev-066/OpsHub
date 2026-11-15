@@ -11,9 +11,16 @@ import {
   type LoginFormValues,
 } from '@/features/auth/login-schema'
 import { describedByIds, FormField } from '@/features/tickets/form-field'
-import { USE_MOCK_API } from '@/lib/env'
+import { DEMO_PASSWORD, USE_MOCK_API } from '@/lib/env'
 
 const loginRoute = getRouteApi('/login')
+
+const DEMO_ACCOUNTS = [
+  { username: 'test', role: 'Admin' },
+  { username: 'priya', role: 'Operations Manager' },
+  { username: 'chris', role: 'Support Agent' },
+  { username: 'sam', role: 'Viewer' },
+] as const
 
 function safeInternalPath(redirect: string | undefined) {
   if (!redirect) return '/dashboard'
@@ -31,6 +38,7 @@ export function LoginPage() {
   const router = useRouter()
   const { redirect } = loginRoute.useSearch()
   const [formError, setFormError] = useState<string | null>(null)
+  const demoPassword = USE_MOCK_API ? 'test' : DEMO_PASSWORD
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -66,15 +74,28 @@ export function LoginPage() {
           <p className="text-sm text-muted-foreground">
             Enter your credentials to access the property operations console.
           </p>
-          {USE_MOCK_API ? (
-            <p className="rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-              Demo mode: use username{' '}
-              <span className="font-mono font-medium text-foreground">test</span>{' '}
-              and password{' '}
-              <span className="font-mono font-medium text-foreground">test</span>{' '}
-              to sign in as the admin operator.
+          <div className="rounded-lg border bg-muted/40 px-3 py-3 text-left text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">Demo accounts</p>
+            <p className="mt-1">
+              Shared password:{' '}
+              <span className="font-mono font-medium text-foreground">
+                {demoPassword}
+              </span>
             </p>
-          ) : null}
+            <ul className="mt-2 space-y-1">
+              {DEMO_ACCOUNTS.map((account) => (
+                <li key={account.username}>
+                  <span className="font-mono font-medium text-foreground">
+                    {account.username}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {' '}
+                    — {account.role}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         <div className="rounded-xl border bg-card p-6 shadow-md">

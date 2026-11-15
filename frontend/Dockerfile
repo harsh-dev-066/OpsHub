@@ -28,8 +28,10 @@ COPY . .
 # VITE_* values are baked into the bundle at build time.
 ARG VITE_USE_MOCKS=false
 ARG VITE_API_BASE_URL=
+ARG VITE_DEMO_PASSWORD=opshub-demo
 ENV VITE_USE_MOCKS=${VITE_USE_MOCKS} \
     VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+    VITE_DEMO_PASSWORD=${VITE_DEMO_PASSWORD} \
     VITE_ENABLE_QUERY_DEVTOOLS=false
 RUN pnpm build
 

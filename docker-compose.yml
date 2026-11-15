@@ -68,6 +68,8 @@ services:
       VITE_USE_MOCKS: "false"
       # Vite proxies /api to the api service over the Compose network.
       VITE_API_PROXY_TARGET: http://api:8000
+      # Public login tip; keep in sync with api DEMO_USER_PASSWORD.
+      VITE_DEMO_PASSWORD: ${DEMO_USER_PASSWORD:-opshub-demo}
     ports:
       # HOST:CONTAINER. Vite always listens on 5173 inside the container
       # (frontend/Dockerfile); change only the host side via WEB_PORT.

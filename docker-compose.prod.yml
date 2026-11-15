@@ -68,6 +68,8 @@ services:
     build:
       context: ./frontend
       target: prod
+      args:
+        VITE_DEMO_PASSWORD: ${DEMO_USER_PASSWORD:-opshub-demo}
     restart: unless-stopped
     environment:
       API_UPSTREAM: http://api:8000

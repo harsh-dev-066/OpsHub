@@ -18,12 +18,12 @@ docker compose up --build        # or: make up
 
 | URL                            | What                                                |
 | ------------------------------ | --------------------------------------------------- |
-| http://localhost:5174          | Console (Vite dev server, hot reload)               |
+| http://localhost:5174          | Landing page → Sign in (Vite dev server, hot reload) |
 | http://localhost:8000/api/docs | API docs (Swagger UI)                               |
 | http://localhost:8000/admin/   | Django admin                                        |
 | `localhost:5433`               | PostgreSQL (`opshub` / `opshub`) for local DB tools |
 
-On first start the API applies migrations and seeds demo data. Sign in as **`test`** (Admin), or as `priya`, `chris` or `sam`. The password is `DEMO_USER_PASSWORD`, which defaults to `opshub-demo`; to change it, copy `.env.example` to `.env`.
+On first start the API applies migrations and seeds demo data. Open the landing page, then **Sign in** as **`test`** (Admin), or as `priya`, `chris` or `sam`. The password is `DEMO_USER_PASSWORD`, which defaults to `opshub-demo` (also listed on the login page); to change it, copy `.env.example` to `.env` and set matching `VITE_DEMO_PASSWORD` for the SPA tip.
 
 ### Day-to-day
 
@@ -124,7 +124,8 @@ To keep Neon's free compute usage low (100 compute-hours a month):
 2. In the Render dashboard, choose **New → Blueprint**, select the repo and confirm `render.yaml`.
 3. When prompted, set:
    - `DATABASE_URL`: the `DATABASE_URL_UNPOOLED` value from `.env.local`;
-   - `DEMO_USER_PASSWORD`: the password for the seeded `test` / `priya` / `chris` / `sam` users.
+   - `DEMO_USER_PASSWORD`: the password for the seeded `test` / `priya` / `chris` / `sam` users;
+   - `VITE_DEMO_PASSWORD`: the same value (shown on the SPA login page).
 4. Apply. Render builds both services. On first start, the API migrates the empty Neon database and seeds demo data.
 5. Render appends a random suffix when a service name is already taken. That happened to the API: `opshub-api.onrender.com` is another account's app, and ours is `opshub-api-s9lm.onrender.com`. If a URL ever changes, update `VITE_API_BASE_URL` on `opshub-web` and `CORS_ALLOWED_ORIGINS` / `CSRF_TRUSTED_ORIGINS` on `opshub-api` to the real URLs, then redeploy both.
 

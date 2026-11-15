@@ -74,6 +74,15 @@ const LoginPage = lazy(() =>
     default: m.LoginPage,
   })),
 )
+const LandingPage = lazy(() =>
+  import('@/features/landing/landing-page').then((m) => ({
+    default: m.LandingPage,
+  })),
+)
+
+function isPublicPath(pathname: string) {
+  return pathname === '/' || pathname === '/login'
+}
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -94,8 +103,7 @@ function LazyPage({ children }: { children: React.ReactNode }) {
 const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: () => <Outlet />,
   beforeLoad: ({ context, location }) => {
-    const isPublicLogin = location.pathname === '/login'
-    if (!isPublicLogin && !isSignedIn(context.auth)) {
+    if (!isPublicPath(location.pathname) && !isSignedIn(context.auth)) {
       throw redirect({
         to: '/login',
         search: {
@@ -105,6 +113,21 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
     }
   },
   notFoundComponent: NotFoundPage,
+})
+
+const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  beforeLoad: ({ context }) => {
+    if (isSignedIn(context.auth)) {
+      throw redirect({ to: '/dashboard' })
+    }
+  },
+  component: () => (
+    <LazyPage>
+      <LandingPage />
+    </LazyPage>
+  ),
 })
 
 const loginRoute = createRoute({
@@ -142,14 +165,6 @@ const authenticatedRoute = createRoute({
     </AppLayout>
   ),
   notFoundComponent: NotFoundPage,
-})
-
-const indexRoute = createRoute({
-  getParentRoute: () => authenticatedRoute,
-  path: '/',
-  beforeLoad: () => {
-    throw redirect({ to: '/dashboard' })
-  },
 })
 
 const dashboardRoute = createRoute({
@@ -250,9 +265,9 @@ const usersRoute = createRoute({
 })
 
 const routeTree = rootRoute.addChildren([
+  indexRoute,
   loginRoute,
   authenticatedRoute.addChildren([
-    indexRoute,
     dashboardRoute,
     propertiesRoute,
     propertyDetailRoute,
