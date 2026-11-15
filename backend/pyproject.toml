@@ -1,0 +1,49 @@
+[project]
+name = "opshub-backend"
+version = "0.1.0"
+description = "OpsHub property-operations API (Django + PostgreSQL + JWT)"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  "django>=5.2,<6.0",
+  "djangorestframework>=3.15",
+  "djangorestframework-simplejwt>=5.3",
+  "djangorestframework-camel-case>=1.4",
+  "django-filter>=24.0",
+  "django-cors-headers>=4.4",
+  "django-environ>=0.11",
+  "drf-spectacular>=0.27",
+  "psycopg[binary]>=3.2",
+  "gunicorn>=23.0",
+  "whitenoise>=6.7",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-django>=4.9",
+  "factory-boy>=3.3",
+  "ruff>=0.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "tests.py"]
+# --ds wins over a DJANGO_SETTINGS_MODULE env var (set to dev inside the container).
+addopts = "-ra --strict-markers --reuse-db --ds=config.settings.test"
+testpaths = ["apps"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ", "SIM", "RUF"]
+ignore = ["RUF012"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]

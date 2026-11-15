@@ -6,7 +6,7 @@ OpsHub models a flexible-living / property-operations domain.
 
 ### Property
 
-Portfolio asset with occupancy rollups.
+Portfolio asset with occupancy rollups. The rollups (`totalUnits`, `occupiedUnits`, …) are computed from units on every read, never stored.
 
 Fields: `id`, `name`, `city`, `country`, `address`, `status`, `totalUnits`, `occupiedUnits`, `availableUnits`, `maintenanceUnits`, `manager`, `createdAt`
 
@@ -17,6 +17,8 @@ Statuses: `active` | `inactive` | `maintenance`
 Assignable space inside a property.
 
 Fields: `id`, `propertyId`, `unitNumber`, `type`, `floor`, `status`, `resident`, `monthlyRate`, `contractStart`, `contractEnd`
+
+`resident` and the contract dates come from the unit's current (`active` or `pending`) contract. `unitNumber` is unique within a property.
 
 Statuses: `occupied` | `available` | `maintenance` | `reserved`
 
@@ -38,7 +40,10 @@ Fields: `id`, `residentId`, `unitId`, `startDate`, `endDate`, `status`
 
 Operational support request.
 
-Fields: `id`, `propertyId`, `unitId`, `title`, `description`, `category`, `priority`, `status`, `assignee`, `createdAt`, `updatedAt`
+Fields: `id`, `propertyId`, `unitId`, `title`, `description`, `category`, `priority`, `status`, `assignee` (display name), `assigneeId` (user id), `createdAt`, `updatedAt`
+
+- `unitId`, if set, must belong to `propertyId`.
+- The assignee must be an active user.
 
 Categories: `maintenance`, `cleaning`, `noise`, `billing`, `access`, `other`  
 Priorities: `low`, `medium`, `high`, `critical`  
@@ -46,43 +51,41 @@ Statuses: `open`, `in_progress`, `waiting`, `resolved`, `closed`
 
 ### User / Role
 
-Demo operators use a typed `PermissionUser` shape (`id`, `name`, `email`, `role`).
+Console operator. Fields: `id`, `name`, `email`, `username`, `roles`, `status`, `createdAt`
 
-This is **not** secure authentication. The Settings page simulates a logged-in operator by switching a demo role stored in `localStorage`. There is no login, password, session cookie, or identity provider.
-
-Roles:
+- `username` is unique, case-insensitive, stored lowercase and immutable.
+- `email` is unique (case-insensitive).
+- `status`: `active` | `inactive`. Inactive users can't sign in, and their tokens stop working immediately.
+- A user may hold **several roles**. Effective permissions are the union.
+- Passwords are hashed by Django (PBKDF2) and validated with Django's password validators.
 
 | Role | Intent |
 | --- | --- |
-| Admin | Full console access |
+| Admin | Full console access, including user management. Reserved: it can't be assigned via the API, and Admin accounts can't be edited via the API |
 | Operations Manager | Properties, units, tickets, operational actions |
 | Support Agent | Ticket workflows; read-only property/unit data |
-| Viewer | Read-only access (plus demo role switcher) |
+| Viewer | Read-only access |
 
-## Frontend permissions (UX only)
+## Authorization (enforced by the backend)
 
-Permissions are typed capability strings in `src/lib/permissions.ts`. Components must not compare role strings (`if (role === 'Admin')`). Prefer:
-
-- `can(user, permission)`
-- `hasPermission(user, permission)`
-- `canAny` / `canAll`
-- `<Can permission="…" />` / `usePermissions()`
+The role → permission matrix is defined once on the server in `backend/apps/accounts/roles.py`. **Every API endpoint enforces it.** The frontend mirrors it (`frontend/src/lib/permissions.ts`) and reads effective permissions from `GET /api/auth/me`, but only to hide unavailable actions.
 
 ### Permission catalog
 
-| Permission | Meaning in UI |
+| Permission | Grants |
 | --- | --- |
-| `dashboard:read` | Dashboard nav + page |
-| `properties:read` | Properties nav + lists/details |
-| `properties:write` | Edit property action |
-| `units:read` | Units nav + lists/details |
-| `units:write` | Edit unit action |
-| `tickets:read` | Tickets nav + lists/details |
-| `tickets:create` | Create ticket button / dialog |
-| `tickets:edit` | Edit ticket action |
-| `tickets:transition` | Status transition control |
-| `settings:read` | Settings nav + page |
-| `settings:write` | Demo role switcher (interview convenience) |
+| `dashboard:read` | Dashboard endpoints and page |
+| `properties:read` | Property lists/details, cities |
+| `properties:write` | Create/update properties |
+| `units:read` | Unit, resident and contract lists/details |
+| `units:write` | Create/update units |
+| `tickets:read` | Ticket lists/details |
+| `tickets:create` | Create tickets |
+| `tickets:edit` | Change ticket fields other than status |
+| `tickets:transition` | Change ticket status |
+| `settings:read` | Settings page |
+| `users:read` | List/view users (also used for assignee pickers) |
+| `users:write` | Create/update users, reset passwords |
 
 ### Role × permission matrix
 
@@ -98,13 +101,16 @@ Permissions are typed capability strings in `src/lib/permissions.ts`. Components
 | `tickets:edit` | ✓ | ✓ | ✓ | |
 | `tickets:transition` | ✓ | ✓ | ✓ | |
 | `settings:read` | ✓ | ✓ | ✓ | ✓ |
-| `settings:write` | ✓ | ✓ | ✓ | ✓* |
+| `users:read` | ✓ | ✓ | ✓ | ✓ |
+| `users:write` | ✓ | | | |
 
-\*Viewer retains `settings:write` only so interviewers can switch roles during the demo. That is not a production auth grant.
+When adding a permission, update `roles.py`, `permissions.ts`, this table and the backend permission-matrix test (`backend/apps/core/tests/test_permissions_matrix.py`).
 
-### What this is not
+## Activity feed
 
-**Important:** these checks only shape the UI for demos. They are not authentication and not authorization. A real backend remains the security boundary and must authorize every mutation independently of this map.
+Append-only feed entry written by the backend whenever a ticket, unit or property changes.
+
+Fields: `id`, `type` (`ticket` | `unit` | `property`), `message`, `timestamp`, `entityId`
 
 ## Relationships
 
@@ -114,15 +120,9 @@ Unit 0..1—1 Resident
 Resident 1—* Contract
 Property 1—* Ticket
 Unit 0..1—* Ticket
+User 0..1—* Ticket (assignee)
 ```
 
 ## Seed volume
 
-Approximately:
-
-- 12 properties
-- ~40–50 units
-- ~40 tickets
-- 4 demo users
-
-Enough for filtering/pagination demos without fake mega-scale.
+About 12 properties, 46 units, 42 tickets and 4 demo users. This is enough for filtering and pagination without fake mega-scale. See [api.md](./api.md#seed-volume).

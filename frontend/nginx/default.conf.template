@@ -1,0 +1,50 @@
+# Serves the built SPA and reverse-proxies the API on the same origin, so the
+# browser never needs CORS. ${API_UPSTREAM} is substituted at container start.
+
+server {
+    listen 80;
+
+    # Re-resolve the API host through Docker's embedded DNS so a recreated api
+    # container (new IP) is picked up without restarting nginx. Using a
+    # variable in proxy_pass is what makes nginx honour the resolver TTL.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    set $api_upstream ${API_UPSTREAM};
+    server_name _;
+    root /usr/share/nginx/html;
+    server_tokens off;
+    client_max_body_size 1m;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 1024;
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # Django: REST API, admin site and its static files.
+    location ~ ^/(api|admin|static)/ {
+        proxy_pass $api_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    # Fingerprinted build assets: cache forever.
+    location /assets/ {
+        include /etc/nginx/snippets/security-headers.conf;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        try_files $uri =404;
+    }
+
+    # SPA routes fall back to index.html, which must never be cached.
+    location / {
+        include /etc/nginx/snippets/security-headers.conf;
+        add_header Cache-Control "no-cache" always;
+        try_files $uri $uri/ /index.html;
+    }
+}

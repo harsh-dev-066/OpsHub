@@ -1,0 +1,84 @@
+# Development stack — everything runs in Docker with hot reload.
+#
+#   docker compose up --build        # http://localhost:5174 (UI), :8000 (API)
+#   docker compose down              # stop (add -v to also drop the database)
+#
+# Source folders are bind-mounted: edits to backend/ reload Django, edits to
+# frontend/ hot-reload Vite. Dependencies live inside the images; rebuild after
+# changing pyproject.toml/uv.lock or package.json/pnpm-lock.yaml:
+#   docker compose up --build -V
+
+name: opshub
+
+x-api-healthcheck: &api-healthcheck
+  test:
+    - CMD
+    - python
+    - -c
+    - "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=3)"
+  interval: 5s
+  timeout: 5s
+  retries: 20
+  start_period: 10s
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: opshub
+      POSTGRES_USER: opshub
+      POSTGRES_PASSWORD: opshub
+    ports:
+      # Host access for psql/GUI tools. 5433 avoids clashing with a local Postgres.
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opshub -d opshub"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      target: dev
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      # Dev-only value; >= 32 bytes so JWT HMAC signing isn't weakened.
+      SECRET_KEY: dev-only-insecure-key-change-me-0123456789abcdef
+      DATABASE_URL: postgres://opshub:opshub@db:5432/opshub
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-opshub-demo}
+      RUN_MIGRATIONS: "1"
+      SEED_DEMO: "1"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck: *api-healthcheck
+
+  web:
+    build:
+      context: ./frontend
+      target: dev
+    environment:
+      VITE_USE_MOCKS: "false"
+      # Vite proxies /api to the api service over the Compose network.
+      VITE_API_PROXY_TARGET: http://api:8000
+    ports:
+      # HOST:CONTAINER. Vite always listens on 5173 inside the container
+      # (frontend/Dockerfile); change only the host side via WEB_PORT.
+      - "${WEB_PORT:-5174}:5173"
+    volumes:
+      - ./frontend:/app
+      # Keep the container's Linux node_modules; don't use the host's.
+      - /app/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:

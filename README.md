@@ -1,167 +1,89 @@
 # OpsHub — Property Operations Console
 
-OpsHub is a **fictional** property-operations console built as an interview-ready public portfolio project.
+OpsHub is a **fictional** property-operations console: portfolio dashboard, properties, units, residents, tickets and user management. It's a full-stack portfolio project that runs entirely in Docker.
 
-It is **not** production software. It demonstrates how a production-style, data-dense React frontend can be structured when real proprietary work cannot be shared.
+| Folder                            | What                | Stack                                                                                                                                                                                   |
+| --------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`frontend/`](frontend/README.md) | Single-page console | React 19, Vite, TypeScript, TanStack Router/Query/Table, Tailwind, MSW for tests/demo                                                                                                   |
+| [`backend/`](backend/README.md)   | REST API            | Django 5.2, Django REST Framework, PostgreSQL 16, SimpleJWT                                                                                                                             |
+| [`.cursor/rules/`](.cursor/rules) | Engineering docs    | Shared [API contract](.cursor/rules/api.md) and [domain model](.cursor/rules/domain-model.md), plus [`frontend/`](.cursor/rules/frontend) and [`backend/`](.cursor/rules/backend) rules |
 
-## Why this exists
+## Quickstart
 
-Real production apps are often confidential. OpsHub gives interviewers something concrete to explore:
-
-- frontend architecture and feature boundaries
-- React 19 + TypeScript
-- routing, server-state, forms, tables, and accessibility
-- mocked API integration patterns
-- loading / error / empty states
-- testing and documentation habits
-
-## Key features
-
-- **Dashboard** — occupancy/available/maintenance/open-ticket KPIs, Recharts occupancy trend and ticket breakdowns, recent activity, quick links to properties and tickets; composed from feature sections with skeleton, error, and empty states
-- **Properties** — URL-synced search/city/status/sort/pagination, row actions, shareable filters, and property detail (summary, occupancy, units, tickets, activity)
-- **Units** — portfolio unit listing + resident/contract detail
-- **Tickets** — URL-synced search/status/priority/category/pagination; RHF+Zod create/edit; optimistic status updates with rollback; toast success/error feedback
-- **Settings** — demo role switcher + effective permissions list; typed `can`/`hasPermission`/`Can` gates (UX-only, not auth)
-- **App shell** — responsive sidebar, top bar, breadcrumbs, consistent feedback states
-
-## Tech stack
-
-- React 19, Vite, TypeScript (strict)
-- pnpm
-- TanStack Router, TanStack Query, TanStack Table
-- Tailwind CSS + Radix/shadcn-style primitives
-- React Hook Form + Zod
-- Recharts
-- MSW
-- Vitest + React Testing Library
-- ESLint + Prettier
-
-## Architecture overview
-
-Feature-oriented structure:
-
-- `src/app` — router, providers, layouts
-- `src/features/*` — domain screens and feature-local forms/schemas
-- `src/components` — shared UI, data-table, navigation, feedback
-- `src/lib` — API client, query keys, permissions, utils
-- `src/mocks` — MSW handlers and seed data
-- `src/types` — shared domain contracts
-
-Server state is owned by TanStack Query. Local React state is limited to UI concerns (filters, dialogs, debounced search). Pages call typed API helpers; they never import mock seed arrays.
-
-See [.cursor/rules/architecture.md](.cursor/rules/architecture.md) for details.
-
-## Local setup
+The only prerequisite is Docker (Desktop or Engine with Compose v2).
 
 ```bash
-pnpm install
-pnpm dev
+docker compose up --build        # or: make up
 ```
 
-Open the printed local URL (typically `http://localhost:5173`).
+| URL                            | What                                                |
+| ------------------------------ | --------------------------------------------------- |
+| http://localhost:5174          | Console (Vite dev server, hot reload)               |
+| http://localhost:8000/api/docs | API docs (Swagger UI)                               |
+| http://localhost:8000/admin/   | Django admin                                        |
+| `localhost:5433`               | PostgreSQL (`opshub` / `opshub`) for local DB tools |
 
-## Available scripts
+On first start the API applies migrations and seeds demo data. Sign in as **`test`** (Admin), or as `priya`, `chris` or `sam`. The password is `DEMO_USER_PASSWORD`, which defaults to `opshub-demo`; to change it, copy `.env.example` to `.env`.
 
-| Script              | Purpose                        |
-| ------------------- | ------------------------------ |
-| `pnpm dev`          | Start Vite dev server          |
-| `pnpm build`        | Typecheck + production build   |
-| `pnpm preview`      | Preview production build       |
-| `pnpm typecheck`    | TypeScript project build check |
-| `pnpm lint`         | ESLint                         |
-| `pnpm format`       | Prettier write                 |
-| `pnpm format:check` | Prettier check                 |
-| `pnpm test`         | Vitest once                    |
-| `pnpm test:watch`   | Vitest watch mode              |
+### Day-to-day
 
-## Project structure
+Run `make help` for the full list.
+
+| Task                        | Command                                        |
+| --------------------------- | ---------------------------------------------- |
+| Start / stop                | `make up` / `make down`                        |
+| Logs                        | `make logs`                                    |
+| All tests                   | `make test` (pytest in `api`, vitest in `web`) |
+| Lint + typecheck            | `make lint`                                    |
+| New migration               | `make migrations`                              |
+| Reload demo data            | `make reseed`                                  |
+| Django shell / psql         | `make shell-api` / `make shell-db`             |
+| Wipe the database           | `make reset`                                   |
+| After changing dependencies | `make rebuild`                                 |
+
+Both `backend/` and `frontend/` are bind-mounted into their containers, so code edits reload immediately. Dependencies live inside the images. After changing `uv.lock` or `pnpm-lock.yaml`, run `make rebuild`, which rebuilds the images and refreshes the `node_modules` volume.
+
+Add dependencies through the containers so lockfiles are produced on Linux:
+
+```bash
+docker compose exec api uv add <package>        # then: make rebuild
+docker compose exec web pnpm add <package>      # then: make rebuild
+```
+
+### Troubleshooting
+
+| Symptom                                | Fix                                                                                                                                          |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| The UI shows a different app or won't load | Another dev server is using the host port (often on IPv6 `::1`). Set `WEB_PORT` in `.env` to a free port and run `make up`. Change only the host side: Vite listens on 5173 inside the container |
+| Port 5433 or 8000 already in use       | Set `POSTGRES_PORT` in `.env`, or stop the conflicting service                                                                               |
+| `Cannot find module …` after pulling   | Dependencies changed: run `make rebuild`                                                                                                     |
+| Want a clean database                  | Run `make reset && make up`; migrations and the seed run again on start                                                                      |
+
+## Production-like stack
+
+`docker-compose.prod.yml` builds the production images: the API runs under gunicorn, and nginx serves the built SPA and proxies `/api`, `/admin` and `/static` to it on the same origin. Only nginx is exposed.
+
+```bash
+cp .env.example .env             # set SECRET_KEY and POSTGRES_PASSWORD (SEED_DEMO=1 for demo data)
+make prod-up                     # http://localhost:8080
+```
+
+That file relaxes the HTTPS-only settings for plain-HTTP localhost. Put TLS in front of nginx and set `SECURE_SSL_REDIRECT=True` and `SECURE_COOKIES=True` for a real deployment. See [backend/README.md](backend/README.md#production).
+
+## How the pieces fit
 
 ```text
-src/
-  app/            # shell, router, providers
-  features/       # dashboard, properties, units, tickets, settings
-  components/     # ui, data-table, feedback, navigation
-  lib/            # api, query keys, permissions, utils
-  mocks/          # handlers + seed data + MSW worker bootstrap
-  types/          # shared domain types
-  theme/          # colors, tokens, Tailwind theme, chart colors
-  test/           # test setup + helpers
-.cursor/rules/    # architecture, domain, API, decisions, walkthrough, theme
+ browser ──► web  (dev: Vite :5174 │ prod: nginx :8080)
+                 │  /api/* proxied on the same origin
+                 ▼
+             api  (dev: runserver │ prod: gunicorn)  ──►  db (PostgreSQL 16)
+             JWT auth · role-based permissions on every endpoint · validation
 ```
 
-## Mock API approach
+The backend is the security boundary. The frontend uses the same permissions (from `/api/auth/me`) only to hide actions a user can't take.
 
-MSW intercepts `/api/*` requests in the browser and in tests.
+The static Netlify demo (`netlify.toml`) builds `frontend/` with `VITE_USE_MOCKS=true`, so the in-browser MSW mock replaces the API.
 
-- Handlers live in `src/mocks/handlers`
-- Seed data lives in `src/mocks/data`
-- Network latency is simulated in development
-- Occasional mutation failures are simulated in development to exercise error UX
-- Query params support search, filters, sort, and pagination
+## Without Docker
 
-The UI treats MSW like a real backend.
-
-## Testing approach
-
-Vitest + React Testing Library focus on behavior:
-
-- dashboard KPI rendering
-- property search/filter
-- ticket form validation
-- successful and failed ticket creation
-- ticket status updates
-- permission-based UI
-- error-state rendering
-
-MSW is reused in tests so components exercise the same API boundary.
-
-## Accessibility considerations
-
-- semantic landmarks and page headings
-- labeled form controls
-- keyboard-accessible dialogs/menus
-- visible focus styles
-- status communicated with text + badges (not color alone)
-- recoverable error/empty states
-
-## Performance considerations
-
-- server-side pagination simulation (no huge DOM tables)
-- debounced search inputs
-- stable query keys
-- lazy-loaded chart modules on the dashboard
-- route-level feature modules kept small and focused
-
-## Major engineering decisions
-
-- Feature folders over pure type-based folders
-- TanStack Query for all server state (no Redux)
-- Zod schemas co-located with ticket forms
-- Shared data-table primitive separated from page business logic
-- Frontend RBAC is UX-only (documented explicitly)
-
-More in [.cursor/rules/decisions.md](.cursor/rules/decisions.md).
-
-## Trade-offs
-
-- Mock data is in-memory and resets on reload
-- Auth is simulated via a settings role switcher
-- No real backend authorization or persistence
-- Table virtualization is designed for, not implemented
-
-## Future improvements
-
-- authenticated session against a real API
-- virtualized tables for very large datasets
-- richer ticket timelines / comments
-- E2E coverage with Playwright
-- dark theme tokens if product needs them
-
-## Documentation
-
-- [Architecture](.cursor/rules/architecture.md)
-- [Domain model](.cursor/rules/domain-model.md)
-- [API](.cursor/rules/api.md)
-- [Decisions](.cursor/rules/decisions.md)
-- [Interview walkthrough](.cursor/rules/interview-walkthrough.md)
-- [Theme](.cursor/rules/theme.md)
+Both apps still run on the host if you prefer: `uv` plus a local Postgres for `backend/`, and `pnpm dev` for `frontend/` (its proxy defaults to `localhost:8000`). See each folder's README.
