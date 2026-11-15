@@ -10,9 +10,11 @@
 # Free-plan caveat (see README "Deploying to Render"): the API sleeps after
 # 15 min idle; the first request then takes ~1 min (plus a brief Neon wake-up).
 #
-# Public URLs are https://<service-name>.onrender.com. If Render assigns a
-# different subdomain (name already taken), update VITE_API_BASE_URL,
-# CORS_ALLOWED_ORIGINS and CSRF_TRUSTED_ORIGINS below to the real URLs.
+# Public URLs: the API was assigned https://opshub-api-s9lm.onrender.com
+# (opshub-api.onrender.com belongs to another Render account); the SPA is
+# https://opshub-web.onrender.com. If either changes (new service, custom
+# domain), update VITE_API_BASE_URL, CORS_ALLOWED_ORIGINS and
+# CSRF_TRUSTED_ORIGINS below to match.
 
 services:
   # ---------------------------------------------------------------- API ----
@@ -58,7 +60,7 @@ services:
       - key: CORS_ALLOWED_ORIGINS
         value: https://opshub-web.onrender.com
       - key: CSRF_TRUSTED_ORIGINS
-        value: https://opshub-api.onrender.com
+        value: https://opshub-api-s9lm.onrender.com
       # Render's edge already redirects HTTP→HTTPS; skipping Django's redirect
       # avoids a loop if the proxy's X-Forwarded-Proto ever differs.
       - key: SECURE_SSL_REDIRECT
@@ -92,7 +94,7 @@ services:
       - key: VITE_USE_MOCKS
         value: "false"
       - key: VITE_API_BASE_URL
-        value: https://opshub-api.onrender.com
+        value: https://opshub-api-s9lm.onrender.com
       - key: VITE_ENABLE_QUERY_DEVTOOLS
         value: "false"
     routes:

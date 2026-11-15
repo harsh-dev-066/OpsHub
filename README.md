@@ -92,7 +92,7 @@ The backend is the security boundary. The frontend uses the same permissions (fr
 | `opshub-web` | Render static site | `frontend/`, `pnpm build` → `frontend/dist` |
 | Database | Neon project, AWS Singapore (`ap-southeast-1`), PostgreSQL 18 | — |
 
-The SPA calls the API directly at `https://opshub-api.onrender.com`, and CORS allows the SPA's origin. The JWT is sent in the `Authorization` header, so no cross-site cookies are involved.
+The SPA (`https://opshub-web.onrender.com`) calls the API directly at `https://opshub-api-s9lm.onrender.com`, and CORS allows the SPA's origin. The JWT is sent in the `Authorization` header, so no cross-site cookies are involved.
 
 ### Neon connection strings
 
@@ -126,7 +126,7 @@ To keep Neon's free compute usage low (100 compute-hours a month):
    - `DATABASE_URL`: the `DATABASE_URL_UNPOOLED` value from `.env.local`;
    - `DEMO_USER_PASSWORD`: the password for the seeded `test` / `priya` / `chris` / `sam` users.
 4. Apply. Render builds both services. On first start, the API migrates the empty Neon database and seeds demo data.
-5. If either service didn't get exactly `opshub-api.onrender.com` / `opshub-web.onrender.com` (the name was taken), update `VITE_API_BASE_URL` on `opshub-web` and `CORS_ALLOWED_ORIGINS` / `CSRF_TRUSTED_ORIGINS` on `opshub-api` to the real URLs, then redeploy both.
+5. Render appends a random suffix when a service name is already taken. That happened to the API: `opshub-api.onrender.com` is another account's app, and ours is `opshub-api-s9lm.onrender.com`. If a URL ever changes, update `VITE_API_BASE_URL` on `opshub-web` and `CORS_ALLOWED_ORIGINS` / `CSRF_TRUSTED_ORIGINS` on `opshub-api` to the real URLs, then redeploy both.
 
 After that, every push to `main` redeploys only what changed (`buildFilter`), once the [CI workflow](.github/workflows/ci.yml) passes (`autoDeployTrigger: checksPass`).
 
@@ -141,7 +141,7 @@ Restore instructions are at the top of the workflow file.
 
 ### Post-deploy checklist
 
-- `https://opshub-api.onrender.com/api/health` returns `{"status":"ok"}`, and `/api/health/ready` returns `{"status":"ok","database":"ok"}`.
+- `https://opshub-api-s9lm.onrender.com/api/health` returns `{"status":"ok"}`, and `/api/health/ready` returns `{"status":"ok","database":"ok"}`.
 - The SPA loads, deep links such as `/tickets` work after a refresh, and you can sign in as `test`.
 - **Login throttling is per client.** From one network, 11 bad logins in a minute should return 429; a different network (e.g. a phone hotspot) should still get 401. If both get 429, Render adds a different number of proxy hops than assumed, so adjust `NUM_PROXIES`.
 - API responses include `Strict-Transport-Security`, which confirms Django sees requests as HTTPS behind Render's proxy.
