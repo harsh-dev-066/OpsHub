@@ -34,7 +34,7 @@ Status changes (`tickets:transition`) and field edits (`tickets:edit`) are separ
 
 ## JWT with rotation, blacklist and revoke-on-password-change
 
-The SPA can be hosted on a different origin from the API (Netlify plus an API host), where cookie-based sessions need cross-site cookie and CSRF configuration. Short-lived access tokens, rotating refresh tokens and server-side blacklisting give a revocable session. The known trade-off is that the refresh token sits in `localStorage` (see the frontend architecture doc).
+The SPA can be hosted on a different origin from the API (on Render the SPA and the API are separate `onrender.com` origins), where cookie-based sessions need cross-site cookie and CSRF configuration. Short-lived access tokens, rotating refresh tokens and server-side blacklisting give a revocable session. The known trade-off is that the refresh token sits in `localStorage` (see the frontend architecture doc).
 
 ## Ticket assignee as a foreign key
 

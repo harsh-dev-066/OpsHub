@@ -44,8 +44,6 @@ RUN SECRET_KEY=collectstatic-only-placeholder-not-used-at-runtime-0123456789 \
     DATABASE_URL=sqlite:////tmp/build.db \
     python manage.py collectstatic --noinput
 USER app
-CMD ["gunicorn", "config.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "3", \
-     "--access-logfile", "-", \
-     "--forwarded-allow-ips", "*"]
+# PORT and WEB_CONCURRENCY are supplied by the platform (Render sets PORT,
+# default 10000); they default to 8000 / 2 for docker-compose.prod.yml.
+CMD ["sh", "-c", "exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-2} --access-logfile - --forwarded-allow-ips '*'"]

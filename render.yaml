@@ -1,0 +1,123 @@
+# Render Blueprint: PostgreSQL + Django API (Docker) + React SPA (static site).
+#
+# Deploy: Render dashboard → New → Blueprint → pick this repo. Render reads this
+# file, prompts for the `sync: false` values, and creates all three resources.
+# Every later push to main redeploys whatever changed (see buildFilter), once
+# the GitHub Actions CI checks pass.
+#
+# Free-plan caveats (see README "Deploying to Render"):
+#   * the API sleeps after 15 min idle; the first request then takes ~1 min;
+#   * the free database expires 30 days after creation (deleted 14 days later)
+#     and has no backups. Upgrade its plan, or point DATABASE_URL elsewhere,
+#     before relying on the data.
+#
+# Public URLs are https://<service-name>.onrender.com. If Render assigns a
+# different subdomain (name already taken), update VITE_API_BASE_URL,
+# CORS_ALLOWED_ORIGINS and CSRF_TRUSTED_ORIGINS below to the real URLs.
+
+databases:
+  - name: opshub-db
+    plan: free
+    region: singapore
+    databaseName: opshub
+    user: opshub
+    postgresMajorVersion: "16"
+
+services:
+  # ---------------------------------------------------------------- API ----
+  - type: web
+    name: opshub-api
+    runtime: docker
+    plan: free
+    region: singapore # same region as the database (private network)
+    # Render builds the Dockerfile's last stage, which is `prod` (gunicorn).
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - backend/**
+        - render.yaml
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: opshub-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PORT
+        value: "10000"
+      - key: WEB_CONCURRENCY
+        value: "2" # free instance: 512 MB RAM
+      # Free plan has no pre-deploy command, so migrate on start (idempotent).
+      - key: RUN_MIGRATIONS
+        value: "1"
+      # Load demo data only into an empty database.
+      - key: SEED_DEMO
+        value: "1"
+      - key: DEMO_USER_PASSWORD
+        sync: false # prompted once when the Blueprint is created
+      # The SPA calls the API cross-origin (no proxy hop to time out on cold starts).
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://opshub-web.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://opshub-api.onrender.com
+      # Render's edge already redirects HTTP→HTTPS; skipping Django's redirect
+      # avoids a loop if the proxy's X-Forwarded-Proto ever differs.
+      - key: SECURE_SSL_REDIRECT
+        value: "False"
+      # One proxy (Render's load balancer) in front of gunicorn. Verify after
+      # the first deploy (README checklist): login throttling must be per client.
+      - key: NUM_PROXIES
+        value: "1"
+
+  # ---------------------------------------------------------------- SPA ----
+  - type: web
+    name: opshub-web
+    runtime: static
+    # pnpm is pinned via npx so the build doesn't depend on Render's bundled version.
+    buildCommand: >-
+      cd frontend &&
+      npx --yes pnpm@12.3.4 install --frozen-lockfile &&
+      npx --yes pnpm@12.3.4 run build
+    staticPublishPath: ./frontend/dist
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - frontend/**
+        - render.yaml
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: SKIP_INSTALL_DEPS # the build command installs with pnpm itself
+        value: "true"
+      # VITE_* values are baked into the bundle at build time.
+      - key: VITE_USE_MOCKS
+        value: "false"
+      - key: VITE_API_BASE_URL
+        value: https://opshub-api.onrender.com
+      - key: VITE_ENABLE_QUERY_DEVTOOLS
+        value: "false"
+    routes:
+      # Client-side routing: unknown paths serve the SPA shell. Existing files
+      # (e.g. /assets/*) are always served directly before rules apply.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

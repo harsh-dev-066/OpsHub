@@ -82,7 +82,42 @@ That file relaxes the HTTPS-only settings for plain-HTTP localhost. Put TLS in f
 
 The backend is the security boundary. The frontend uses the same permissions (from `/api/auth/me`) only to hide actions a user can't take.
 
-The static Netlify demo (`netlify.toml`) builds `frontend/` with `VITE_USE_MOCKS=true`, so the in-browser MSW mock replaces the API.
+## Deploying to Render
+
+[`render.yaml`](render.yaml) is a Render Blueprint that creates the whole stack on free plans in the Singapore region:
+
+| Resource | Render type | Built from |
+| --- | --- | --- |
+| `opshub-db` | PostgreSQL 16 | — |
+| `opshub-api` | Web service (Docker) | `backend/Dockerfile`, last stage = `prod` (gunicorn) |
+| `opshub-web` | Static site | `frontend/`, `pnpm build` → `frontend/dist` |
+
+The SPA calls the API directly at `https://opshub-api.onrender.com`; CORS allows the SPA's origin. The JWT is sent in the `Authorization` header, so no cross-site cookies are involved.
+
+### First deploy
+
+1. Push this repo to GitHub (Render deploys from a Git provider).
+2. In the Render dashboard, choose **New → Blueprint**, select the repo and confirm `render.yaml`.
+3. When prompted, set `DEMO_USER_PASSWORD` (the password for the seeded `test` / `priya` / `chris` / `sam` users).
+4. Apply. Render creates the database, builds both services, and on first start the API migrates and seeds demo data.
+5. If either service didn't get exactly `opshub-api.onrender.com` / `opshub-web.onrender.com` (the name was taken), update `VITE_API_BASE_URL` on `opshub-web` and `CORS_ALLOWED_ORIGINS` / `CSRF_TRUSTED_ORIGINS` on `opshub-api` to the real URLs, then redeploy both.
+
+After that, every push to `main` redeploys only what changed (`buildFilter`), once the [CI workflow](.github/workflows/ci.yml) passes (`autoDeployTrigger: checksPass`).
+
+### Post-deploy checklist
+
+- `https://opshub-api.onrender.com/api/health` returns `{"status":"ok","database":"ok"}`.
+- The SPA loads, deep links such as `/tickets` work after a refresh, and you can sign in as `test`.
+- **Login throttling is per client.** From one network, 11 bad logins in a minute should return 429; a different network (e.g. a phone hotspot) should still get 401. If both get 429, Render adds a different number of proxy hops than assumed, so adjust `NUM_PROXIES`.
+- API responses include `Strict-Transport-Security`, which confirms Django sees requests as HTTPS behind Render's proxy.
+
+### Free-plan limits
+
+These are from Render's docs as of November 2026; check the current [free plan page](https://render.com/docs/free).
+
+- **The API sleeps** after 15 minutes without traffic, and the next request takes about a minute. The SPA pings `/api/health` on load to start waking it early, and shows a "server is starting" message instead of failing silently.
+- **The free database expires 30 days after creation** and is deleted 14 days later, with no backups. Before relying on the data, upgrade `opshub-db`'s plan, or point `DATABASE_URL` at another Postgres (e.g. Neon) and remove the `databases` entry.
+- Free services run a single instance, have no shell access and no pre-deploy command. That's why migrations run on container start (`RUN_MIGRATIONS=1`).
 
 ## Without Docker
 

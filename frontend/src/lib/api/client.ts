@@ -109,6 +109,14 @@ export async function apiClient<T>(
     return undefined as T
   }
 
+  if (!response.headers.get('content-type')?.includes('application/json')) {
+    // e.g. a hosting provider's "waking up" page while the API cold-starts.
+    throw new ApiError(
+      'The server is starting up or unavailable. Please try again in a moment.',
+      503,
+    )
+  }
+
   return response.json() as Promise<T>
 }
 

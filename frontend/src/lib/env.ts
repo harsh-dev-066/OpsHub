@@ -1,7 +1,7 @@
 /**
  * Runtime configuration from Vite env vars.
  *
- * - `VITE_USE_MOCKS=true` serves `/api/*` from MSW (static demo, offline dev).
+ * - `VITE_USE_MOCKS=true` serves `/api/*` from MSW (offline dev / demos without a backend).
  * - `VITE_API_BASE_URL` points at the Django API when it lives on another
  *   origin. Leave empty in dev: Vite proxies `/api` to the backend.
  */

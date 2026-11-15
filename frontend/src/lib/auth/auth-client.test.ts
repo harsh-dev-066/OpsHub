@@ -83,3 +83,24 @@ describe('apiClient authentication', () => {
     expect(refreshSpy).not.toHaveBeenCalled()
   })
 })
+
+describe('apiClient non-JSON responses', () => {
+  it('reports a starting-up server instead of a JSON parse error', async () => {
+    server.use(
+      http.get(
+        '/api/dashboard/summary',
+        () =>
+          new HttpResponse('<html>Service waking up</html>', {
+            status: 200,
+            headers: { 'Content-Type': 'text/html' },
+          }),
+      ),
+    )
+    seedSession('mock-access.user-001')
+
+    await expect(apiClient('/api/dashboard/summary')).rejects.toMatchObject({
+      status: 503,
+      message: expect.stringMatching(/starting up/i),
+    })
+  })
+})

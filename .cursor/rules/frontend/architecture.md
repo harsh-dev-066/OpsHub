@@ -1,6 +1,6 @@
 # Architecture
 
-OpsHub's frontend (`frontend/`) is a Vite + React 19 SPA. It talks to the Django REST API in `backend/` via JWT auth. MSW serves the same contract for tests and the static demo (`VITE_USE_MOCKS=true`). All paths below are relative to `frontend/`.
+OpsHub's frontend (`frontend/`) is a Vite + React 19 SPA. It talks to the Django REST API in `backend/` via JWT auth. MSW serves the same contract for tests and offline mock mode (`VITE_USE_MOCKS=true`). All paths below are relative to `frontend/`.
 
 The HTTP contract shared with the backend lives in [../api.md](../api.md); entities and roles are in [../domain-model.md](../domain-model.md).
 

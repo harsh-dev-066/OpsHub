@@ -36,7 +36,7 @@ Real production apps are often confidential. OpsHub gives interviewers something
 - Tailwind CSS + Radix/shadcn-style primitives
 - React Hook Form + Zod
 - Recharts
-- MSW (tests and static demo mode)
+- MSW (tests and offline mock mode)
 - Vitest + React Testing Library
 - ESLint + Prettier
 

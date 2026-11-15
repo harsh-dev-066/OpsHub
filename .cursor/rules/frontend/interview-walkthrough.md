@@ -2,7 +2,7 @@
 
 OpsHub is a **fictional** property-operations console. It is an interview portfolio stand-in for proprietary work — **not** production software. Every `/api/*` call is served by **MSW** in development and tests. There is no real backend, identity provider, or server-side authorization.
 
-> **Update:** the repo now has a real Django + PostgreSQL backend (`backend/`) with JWT auth and server-side RBAC. The frontend talks to it by default; MSW remains for tests and the static demo (`VITE_USE_MOCKS=true`). Statements below about "mocked" behavior describe that demo mode. See [../backend/architecture.md](../backend/architecture.md).
+> **Update:** the repo now has a real Django + PostgreSQL backend (`backend/`) with JWT auth and server-side RBAC. The frontend talks to it by default; MSW remains for tests and offline mock mode (`VITE_USE_MOCKS=true`). Statements below about "mocked" behavior describe that demo mode. See [../backend/architecture.md](../backend/architecture.md).
 
 Use this doc to rehearse. Be honest about what is mocked.
 

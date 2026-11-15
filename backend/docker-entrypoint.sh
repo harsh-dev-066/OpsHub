@@ -11,7 +11,9 @@ if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
 fi
 
 if [ "${SEED_DEMO:-0}" = "1" ]; then
-  python manage.py seed_demo --if-empty
+  # Demo data is a convenience: never let a seeding problem (e.g. an unset
+  # DEMO_USER_PASSWORD) keep the API from starting.
+  python manage.py seed_demo --if-empty || echo "WARNING: demo seed skipped (see error above)."
 fi
 
 exec "$@"

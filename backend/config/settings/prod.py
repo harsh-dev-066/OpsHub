@@ -14,6 +14,10 @@ MIDDLEWARE = [
 
 DEBUG = False
 
+# Render injects the service's public hostname (also used by its health checks).
+if render_host := env("RENDER_EXTERNAL_HOSTNAME", default=""):
+    ALLOWED_HOSTS = [*ALLOWED_HOSTS, render_host]  # noqa: F405
+
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
@@ -39,6 +43,7 @@ SPECTACULAR_SETTINGS = {
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
 }
 
-# Fail fast on a weak signing key: it signs sessions and every JWT.
-if len(SECRET_KEY) < 50 or SECRET_KEY.startswith("django-insecure"):  # noqa: F405
-    raise ImproperlyConfigured("SECRET_KEY must be a random value of at least 50 characters.")
+# Fail fast on a weak signing key: it signs sessions and every JWT. 32+ chars
+# admits a base64-encoded 256-bit key (44 chars, e.g. Render's generateValue).
+if len(SECRET_KEY) < 32 or SECRET_KEY.startswith("django-insecure"):  # noqa: F405
+    raise ImproperlyConfigured("SECRET_KEY must be a random value of at least 32 characters.")

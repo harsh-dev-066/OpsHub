@@ -3,7 +3,7 @@
 This is the REST contract between `frontend/` and `backend/`. Both sides implement it:
 
 - **Django** (`backend/`) is the real implementation, backed by PostgreSQL.
-- **MSW** (`frontend/src/mocks`) is an in-browser copy used by frontend tests and the static demo (`VITE_USE_MOCKS=true`).
+- **MSW** (`frontend/src/mocks`) is an in-browser copy used by frontend tests and offline mock mode (`VITE_USE_MOCKS=true`).
 
 Change the contract here first, then update both implementations (and `frontend/src/types/domain.ts`). The live OpenAPI schema is served by the backend at `/api/schema`, with Swagger UI at `/api/docs`.
 
