@@ -82,42 +82,77 @@ That file relaxes the HTTPS-only settings for plain-HTTP localhost. Put TLS in f
 
 The backend is the security boundary. The frontend uses the same permissions (from `/api/auth/me`) only to hide actions a user can't take.
 
-## Deploying to Render
+## Deploying to Render (+ Neon)
 
-[`render.yaml`](render.yaml) is a Render Blueprint that creates the whole stack on free plans in the Singapore region:
+[`render.yaml`](render.yaml) is a Render Blueprint for the two app services. The database is a [Neon](https://neon.com) serverless Postgres project. Its free plan has no expiry, unlike Render's free Postgres.
 
-| Resource | Render type | Built from |
+| Resource | Where | Built from |
 | --- | --- | --- |
-| `opshub-db` | PostgreSQL 16 | — |
-| `opshub-api` | Web service (Docker) | `backend/Dockerfile`, last stage = `prod` (gunicorn) |
-| `opshub-web` | Static site | `frontend/`, `pnpm build` → `frontend/dist` |
+| `opshub-api` | Render web service (Docker, Singapore) | `backend/Dockerfile`, last stage = `prod` (gunicorn) |
+| `opshub-web` | Render static site | `frontend/`, `pnpm build` → `frontend/dist` |
+| Database | Neon project, AWS Singapore (`ap-southeast-1`), PostgreSQL 18 | — |
 
-The SPA calls the API directly at `https://opshub-api.onrender.com`; CORS allows the SPA's origin. The JWT is sent in the `Authorization` header, so no cross-site cookies are involved.
+The SPA calls the API directly at `https://opshub-api.onrender.com`, and CORS allows the SPA's origin. The JWT is sent in the `Authorization` header, so no cross-site cookies are involved.
+
+### Neon connection strings
+
+The repo is linked to the Neon project with the `neon` CLI (`neon init`). The project and branch IDs are in `.neon` (git-ignored). `neon env pull` writes the connection strings to **`.env.local`** (also git-ignored; never commit it):
+
+| Variable | Use |
+| --- | --- |
+| `DATABASE_URL_UNPOOLED` | **Direct** connection. Use this value for Render's `DATABASE_URL` and the backup secret |
+| `DATABASE_URL` | Pooled (`-pooler` host). Only use it with `DISABLE_SERVER_SIDE_CURSORS=True` |
+
+Local development is unaffected: it uses the Docker Postgres. To check that the app can reach Neon (read-only, no migrations):
+
+```bash
+export DATABASE_URL=$(grep '^DATABASE_URL_UNPOOLED=' .env.local | cut -d= -f2- | tr -d '"')
+docker compose run --rm --no-deps -e DATABASE_URL -e RUN_MIGRATIONS=0 -e SEED_DEMO=0 api \
+  python manage.py wait_for_db
+unset DATABASE_URL
+```
+
+To keep Neon's free compute usage low (100 compute-hours a month):
+
+- Render's health check uses `/api/health`, which never queries the database.
+- `DB_CONN_MAX_AGE=0` closes connections after each request, so Neon can scale to zero while the app is idle.
+- `/api/health/ready` is the database-aware check.
 
 ### First deploy
 
 1. Push this repo to GitHub (Render deploys from a Git provider).
 2. In the Render dashboard, choose **New → Blueprint**, select the repo and confirm `render.yaml`.
-3. When prompted, set `DEMO_USER_PASSWORD` (the password for the seeded `test` / `priya` / `chris` / `sam` users).
-4. Apply. Render creates the database, builds both services, and on first start the API migrates and seeds demo data.
+3. When prompted, set:
+   - `DATABASE_URL`: the `DATABASE_URL_UNPOOLED` value from `.env.local`;
+   - `DEMO_USER_PASSWORD`: the password for the seeded `test` / `priya` / `chris` / `sam` users.
+4. Apply. Render builds both services. On first start, the API migrates the empty Neon database and seeds demo data.
 5. If either service didn't get exactly `opshub-api.onrender.com` / `opshub-web.onrender.com` (the name was taken), update `VITE_API_BASE_URL` on `opshub-web` and `CORS_ALLOWED_ORIGINS` / `CSRF_TRUSTED_ORIGINS` on `opshub-api` to the real URLs, then redeploy both.
 
 After that, every push to `main` redeploys only what changed (`buildFilter`), once the [CI workflow](.github/workflows/ci.yml) passes (`autoDeployTrigger: checksPass`).
 
+### Backups
+
+Free plans don't guarantee backups. [`.github/workflows/db-backup.yml`](.github/workflows/db-backup.yml) runs `pg_dump` every Sunday (or on demand), encrypts the dump with AES-256 and keeps it as a workflow artifact for 90 days. To enable it, add two repository secrets:
+
+- `NEON_DATABASE_URL`: the direct connection string;
+- `BACKUP_PASSPHRASE`: a long random passphrase, also saved in your password manager.
+
+Restore instructions are at the top of the workflow file.
+
 ### Post-deploy checklist
 
-- `https://opshub-api.onrender.com/api/health` returns `{"status":"ok","database":"ok"}`.
+- `https://opshub-api.onrender.com/api/health` returns `{"status":"ok"}`, and `/api/health/ready` returns `{"status":"ok","database":"ok"}`.
 - The SPA loads, deep links such as `/tickets` work after a refresh, and you can sign in as `test`.
 - **Login throttling is per client.** From one network, 11 bad logins in a minute should return 429; a different network (e.g. a phone hotspot) should still get 401. If both get 429, Render adds a different number of proxy hops than assumed, so adjust `NUM_PROXIES`.
 - API responses include `Strict-Transport-Security`, which confirms Django sees requests as HTTPS behind Render's proxy.
 
 ### Free-plan limits
 
-These are from Render's docs as of November 2026; check the current [free plan page](https://render.com/docs/free).
+These are from the providers' docs and 2026 comparisons; check the current [Render](https://render.com/docs/free) and [Neon](https://neon.com/pricing) pages.
 
-- **The API sleeps** after 15 minutes without traffic, and the next request takes about a minute. The SPA pings `/api/health` on load to start waking it early, and shows a "server is starting" message instead of failing silently.
-- **The free database expires 30 days after creation** and is deleted 14 days later, with no backups. Before relying on the data, upgrade `opshub-db`'s plan, or point `DATABASE_URL` at another Postgres (e.g. Neon) and remove the `databases` entry.
-- Free services run a single instance, have no shell access and no pre-deploy command. That's why migrations run on container start (`RUN_MIGRATIONS=1`).
+- **The API sleeps** after 15 minutes without traffic, and the next request takes about a minute (plus a brief Neon wake-up). The SPA pings `/api/health` on load to start waking it early, and shows a "server is starting" message instead of failing silently.
+- **Neon free:** no expiry, small storage (0.5–1 GB; the demo data is a few MB) and 100 compute-hours a month. If those hours run out, the database is suspended until the next month.
+- Free Render services run a single instance, have no shell access and no pre-deploy command. That's why migrations run on container start (`RUN_MIGRATIONS=1`).
 
 ## Without Docker
 

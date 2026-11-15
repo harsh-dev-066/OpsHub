@@ -31,7 +31,8 @@ Prefix the commands below with `uv run` instead of `docker compose exec api`.
 | --- | --- |
 | `/api/...` | REST API (see the contract doc) |
 | `/api/docs` | Swagger UI (OpenAPI schema at `/api/schema`) |
-| `/api/health` | Liveness + DB check (public) |
+| `/api/health` | Liveness, no database access (public; Render's health check) |
+| `/api/health/ready` | Readiness: database reachable (public; Compose health checks) |
 | `/admin/` | Django admin. The seeded `test` user is a superuser |
 
 ### Try it with curl
@@ -68,6 +69,8 @@ All settings come from environment variables (or `backend/.env`). See [`.env.exa
 | `JWT_ACCESS_TOKEN_MINUTES` / `JWT_REFRESH_TOKEN_DAYS` | 15 / 7 | Lower the access lifetime locally to exercise refresh |
 | `LOGIN_THROTTLE_RATE` | `10/min` | Per-IP login attempts |
 | `DEMO_USER_PASSWORD` | — | Password given to seeded users |
+| `DB_CONN_MAX_AGE` | `60` | Seconds to keep DB connections open; `0` on Render so Neon can scale to zero |
+| `DISABLE_SERVER_SIDE_CURSORS` | `False` | Set `True` with transaction-mode poolers (Neon's pooled `-pooler` host) |
 
 ## Production
 

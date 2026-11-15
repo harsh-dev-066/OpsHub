@@ -7,7 +7,27 @@ from rest_framework.views import APIView
 
 
 class HealthView(APIView):
-    """Liveness + database connectivity probe for load balancers."""
+    """Liveness probe: the process is up and serving requests.
+
+    Deliberately does **not** touch the database. Platforms poll this every few
+    seconds (Render's health check); a DB query here would keep a
+    scale-to-zero database (Neon) awake and burn its free compute hours.
+    """
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    @extend_schema(responses={200: dict})
+    def get(self, request):
+        return Response({"status": "ok"})
+
+
+class ReadinessView(APIView):
+    """Readiness probe: the process is up **and** the database answers.
+
+    For container orchestration (docker compose) and manual checks, not for
+    high-frequency platform health checks.
+    """
 
     authentication_classes = []
     permission_classes = [AllowAny]

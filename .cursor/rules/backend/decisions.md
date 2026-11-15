@@ -55,3 +55,13 @@ Login throttling stores counters in the cache. Gunicorn runs several worker proc
 ## Everything runs in Docker
 
 `docker-compose.yml` is the dev stack: bind-mounted source with hot reload, and dependencies baked into images. `docker-compose.prod.yml` runs the `prod` image targets: gunicorn behind nginx on one origin. nginx re-resolves the `api` hostname through Docker DNS so a recreated API container is picked up without restarting nginx.
+
+## Neon for production Postgres
+
+Render's free Postgres expires after 30 days; Neon's free plan doesn't. Neon scales compute to zero when idle and has 100 free compute-hours a month, which shapes three choices:
+
+- Platform health checks hit `/api/health`, which never queries the database. `/api/health/ready` is the database-aware probe.
+- Render runs with `DB_CONN_MAX_AGE=0`.
+- `CONN_HEALTH_CHECKS` is on, so a connection dropped by a suspended compute is replaced rather than failing a request.
+
+Use the direct (non-pooled) connection string. The pooled one requires `DISABLE_SERVER_SIDE_CURSORS=True`. Backups are an encrypted weekly `pg_dump` GitHub Actions artifact.

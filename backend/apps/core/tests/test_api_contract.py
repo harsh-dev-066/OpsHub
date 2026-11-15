@@ -1,6 +1,8 @@
 """Cross-cutting API contract: pagination, errors, routing, health."""
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from apps.factories import PropertyFactory
 
@@ -62,10 +64,31 @@ def test_unauthenticated_requests_get_401(api_client):
     assert res.json()["message"]
 
 
-def test_health_is_public(api_client):
-    res = api_client.get("/api/health")
+def test_liveness_is_public_and_never_queries_the_database(api_client):
+    with CaptureQueriesContext(connection) as ctx:
+        res = api_client.get("/api/health")
+    assert res.status_code == 200
+    assert res.json() == {"status": "ok"}
+    assert ctx.captured_queries == []
+
+
+def test_readiness_checks_the_database(api_client):
+    res = api_client.get("/api/health/ready")
     assert res.status_code == 200
     assert res.json() == {"status": "ok", "database": "ok"}
+
+
+def test_readiness_reports_database_outage(api_client, monkeypatch):
+    from django.db import OperationalError
+    from django.db.backends.base.base import BaseDatabaseWrapper
+
+    def down(self):
+        raise OperationalError("connection refused")
+
+    monkeypatch.setattr(BaseDatabaseWrapper, "ensure_connection", down)
+    res = api_client.get("/api/health/ready")
+    assert res.status_code == 503
+    assert res.json()["database"] == "unavailable"
 
 
 def test_unknown_sort_field_falls_back_to_default(viewer_client):

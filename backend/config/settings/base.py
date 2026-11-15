@@ -101,6 +101,13 @@ TEMPLATES = [
 DATABASES = {"default": env.db("DATABASE_URL")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = False
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=60)
+# Verify a reused connection before each request: a scale-to-zero database
+# (Neon) drops idle connections when its compute suspends.
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+# Required with transaction-mode poolers (Neon's "-pooler" host, PgBouncer).
+DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = env.bool(
+    "DISABLE_SERVER_SIDE_CURSORS", default=False
+)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

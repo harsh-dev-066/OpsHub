@@ -34,8 +34,8 @@ SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=True)
 CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=True)
 X_FRAME_OPTIONS = "DENY"
 
-# /api/health must stay reachable over plain HTTP for load-balancer probes.
-SECURE_REDIRECT_EXEMPT = [r"^api/health$"]
+# Health probes must stay reachable over plain HTTP for load balancers.
+SECURE_REDIRECT_EXEMPT = [r"^api/health(/ready)?$"]
 
 # API schema/docs require a signed-in user in production.
 SPECTACULAR_SETTINGS = {

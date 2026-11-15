@@ -1,27 +1,18 @@
-# Render Blueprint: PostgreSQL + Django API (Docker) + React SPA (static site).
+# Render Blueprint: Django API (Docker) + React SPA (static site).
+# The database is Neon (serverless Postgres, free plan without expiry), created
+# outside Render; its connection string is entered as DATABASE_URL.
 #
 # Deploy: Render dashboard → New → Blueprint → pick this repo. Render reads this
-# file, prompts for the `sync: false` values, and creates all three resources.
-# Every later push to main redeploys whatever changed (see buildFilter), once
-# the GitHub Actions CI checks pass.
+# file, prompts for the `sync: false` values (DATABASE_URL, DEMO_USER_PASSWORD)
+# and creates both services. Every later push to main redeploys whatever
+# changed (see buildFilter), once the GitHub Actions CI checks pass.
 #
-# Free-plan caveats (see README "Deploying to Render"):
-#   * the API sleeps after 15 min idle; the first request then takes ~1 min;
-#   * the free database expires 30 days after creation (deleted 14 days later)
-#     and has no backups. Upgrade its plan, or point DATABASE_URL elsewhere,
-#     before relying on the data.
+# Free-plan caveat (see README "Deploying to Render"): the API sleeps after
+# 15 min idle; the first request then takes ~1 min (plus a brief Neon wake-up).
 #
 # Public URLs are https://<service-name>.onrender.com. If Render assigns a
 # different subdomain (name already taken), update VITE_API_BASE_URL,
 # CORS_ALLOWED_ORIGINS and CSRF_TRUSTED_ORIGINS below to the real URLs.
-
-databases:
-  - name: opshub-db
-    plan: free
-    region: singapore
-    databaseName: opshub
-    user: opshub
-    postgresMajorVersion: "16"
 
 services:
   # ---------------------------------------------------------------- API ----
@@ -29,10 +20,11 @@ services:
     name: opshub-api
     runtime: docker
     plan: free
-    region: singapore # same region as the database (private network)
+    region: singapore # keep close to the Neon project (AWS ap-southeast-1)
     # Render builds the Dockerfile's last stage, which is `prod` (gunicorn).
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
+    # Liveness only — never queries the DB, so polling can't keep Neon awake.
     healthCheckPath: /api/health
     autoDeployTrigger: checksPass
     buildFilter:
@@ -40,10 +32,14 @@ services:
         - backend/**
         - render.yaml
     envVars:
+      # Neon *direct* connection string (host without "-pooler"), e.g.
+      # postgresql://USER:PASSWORD@ep-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
       - key: DATABASE_URL
-        fromDatabase:
-          name: opshub-db
-          property: connectionString
+        sync: false # secret: prompted once when the Blueprint is created
+      # Close DB connections after each request so Neon's compute can scale to
+      # zero while the app is idle (free plan = 100 compute-hours/month).
+      - key: DB_CONN_MAX_AGE
+        value: "0"
       - key: SECRET_KEY
         generateValue: true
       - key: PORT

@@ -95,7 +95,8 @@ Every error body has this shape:
 | POST   | `/api/auth/refresh`                  | public     | `{refresh}` → `{access, refresh}` |
 | POST   | `/api/auth/logout`                   | public     | `{refresh}` → 204 (blacklists the token) |
 | GET    | `/api/auth/me`                       | signed in  | Current user, plus `role` and `permissions[]` |
-| GET    | `/api/health`                        | public     | Liveness and DB check |
+| GET    | `/api/health`                        | public     | Liveness only (never touches the DB; used by platform health checks) |
+| GET    | `/api/health/ready`                  | public     | Readiness: process up and DB reachable (503 otherwise) |
 | GET    | `/api/dashboard/summary`             | `dashboard:read` | KPI summary |
 | GET    | `/api/dashboard/occupancy`           | `dashboard:read` | Last 12 months `{month, occupancyRate}` |
 | GET    | `/api/dashboard/tickets-by-priority` | `dashboard:read` | `{name, value}[]`, zero-filled |
