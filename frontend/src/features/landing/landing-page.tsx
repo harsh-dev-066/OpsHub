@@ -1,12 +1,12 @@
-import { ArchitectureSection } from '@/features/landing/architecture-section'
+import { Building } from 'lucide-react'
 import { CtaSection } from '@/features/landing/cta-section'
 import { FeaturesSection } from '@/features/landing/features-section'
 import { HeroSection } from '@/features/landing/hero-section'
 import { LandingNav } from '@/features/landing/landing-nav'
 import { RolesSection } from '@/features/landing/roles-section'
-import { TechStackSection } from '@/features/landing/tech-stack-section'
+import { WorkflowSection } from '@/features/landing/workflow-section'
 
-/** Public marketing page at `/` for signed-out visitors. */
+/** Public page at `/` for signed-out visitors. */
 export function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -20,17 +20,17 @@ export function LandingPage() {
       <main id="main">
         <HeroSection />
         <FeaturesSection />
+        <WorkflowSection />
         <RolesSection />
-        <ArchitectureSection />
-        <TechStackSection />
         <CtaSection />
       </main>
       <footer className="border-t px-4 py-8 sm:px-6">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
-          <p>
-            OpsHub is a fictional demo product built as a portfolio project.
-          </p>
-          <p>All properties, residents and tickets are sample data.</p>
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-2 font-medium text-foreground">
+            <Building className="h-4 w-4 text-primary" aria-hidden />
+            OpsHub
+          </span>
+          <span>© {new Date().getFullYear()} OpsHub</span>
         </div>
       </footer>
     </div>
